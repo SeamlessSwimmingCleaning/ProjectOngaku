@@ -29,20 +29,22 @@
         .selected { border: 2px solid var(--primary-cyan); background: rgba(0, 255, 229, 0.3); }
         
         /* --- GAME AREA --- */
-        #game-area { position: relative; width: 100%; max-width: 500px; height: 100%; margin: 0 auto; perspective: 150px; }
+        #game-area { position: relative; width: 100%; max-width: 500px; height: 100%; margin: 0 auto; perspective: 150px; overflow: hidden; }
         .lanes { display: flex; height: 100%; transform: rotateX(15deg); background: rgba(255,255,255,0.02); position: relative; }
         
-        /* THE HIT LINE: Added 50px above the boxes */
+        /* THE ACTUAL HIT LINE */
         #perfect-line {
             position: absolute;
-            bottom: 170px; /* 120px (box height) + 50px */
+            bottom: 120px; /* Right on top of the boxes */
             width: 100%;
-            height: 4px;
+            height: 5px;
             background: white;
-            box-shadow: 0 0 15px white;
-            z-index: 25;
+            box-shadow: 0 0 20px white;
+            z-index: 30;
             pointer-events: none;
+            transition: transform 0.05s, background 0.05s;
         }
+        .line-pulse { background: var(--primary-cyan) !important; transform: scaleY(2); }
 
         .lane { 
             flex: 1; 
@@ -55,17 +57,17 @@
         }
         .lane-active { background: linear-gradient(to top, var(--lane-glow), transparent); }
         
-        /* THE TEAL BOXES: Boosted visibility */
+        /* THE VISIBLE TEAL RECTANGLES */
         .hit-box {
             width: 100%; height: 120px; 
             border: 4px solid var(--primary-cyan) !important;
-            background: #004d45 !important; /* Solid teal-dark color */
+            background: rgba(0, 77, 69, 0.9) !important; /* Solid teal-dark to ensure it shows */
             display: flex; align-items: center; justify-content: center; 
             font-weight: bold; font-size: 2.5rem; color: white;
             box-sizing: border-box; z-index: 20;
-            opacity: 1 !important;
+            position: relative;
         }
-        .lane-active .hit-box { background: var(--primary-cyan) !important; color: black; }
+        .lane-active .hit-box { background: var(--primary-cyan) !important; color: black; box-shadow: 0 0 30px var(--primary-cyan); }
 
         /* --- NOTES --- */
         .note { position: absolute; width: 90%; left: 5%; height: 25px; background: var(--primary-cyan); border: 2px solid white; border-radius: 4px; z-index: 10; }
@@ -132,8 +134,8 @@
         </div>
         <div id="judgment-text"></div>
         <div id="game-area">
-            <div class="lanes">
-                <div id="perfect-line"></div> <div class="lane" id="l0" onmousedown="checkHit(0)" ontouchstart="checkHit(0)"><div class="hit-box">D</div></div>
+            <div id="perfect-line"></div> <div class="lanes">
+                <div class="lane" id="l0" onmousedown="checkHit(0)" ontouchstart="checkHit(0)"><div class="hit-box">D</div></div>
                 <div class="lane" id="l1" onmousedown="checkHit(1)" ontouchstart="checkHit(1)"><div class="hit-box">F</div></div>
                 <div class="lane" id="l2" onmousedown="checkHit(2)" ontouchstart="checkHit(2)"><div class="hit-box">J</div></div>
                 <div class="lane" id="l3" onmousedown="checkHit(3)" ontouchstart="checkHit(3)"><div class="hit-box">K</div></div>
@@ -222,10 +224,10 @@
                 n.y += noteFallSpeed;
                 n.el.style.top = n.y + 'px';
                 
-                // Hit line is at window.innerHeight - 170
-                const targetY = window.innerHeight - 170;
+                // Hit line logic (bottom 120px)
+                const targetY = window.innerHeight - 120;
 
-                if (n.type === 'trace' && n.y > targetY) { hitNote(i, "PERFECT!!"); continue; }
+                if (n.type === 'trace' && n.y > targetY) { hitNote(i, "PERFECT!!"); pulseLine(); continue; }
                 
                 if (n.y > window.innerHeight) {
                     n.el.remove(); notes.splice(i, 1);
@@ -238,18 +240,24 @@
             else requestAnimationFrame(gameLoop);
         }
 
+        function pulseLine() {
+            const line = document.getElementById('perfect-line');
+            line.classList.add('line-pulse');
+            setTimeout(() => line.classList.remove('line-pulse'), 50);
+        }
+
         function checkHit(lane) {
             if(!gameActive || isPaused) return;
             const lEl = document.getElementById('l' + lane);
             lEl.classList.add('lane-active');
             setTimeout(() => lEl.classList.remove('lane-active'), 150);
 
-            const hitThreshold = window.innerHeight - 170;
+            const hitThreshold = window.innerHeight - 120;
             const noteIdx = notes.findIndex(n => n.lane === lane && n.y > hitThreshold - 100 && n.y < hitThreshold + 100);
             
             if (noteIdx !== -1) {
                 const diff = Math.abs(notes[noteIdx].y - hitThreshold);
-                if (diff < 35) hitNote(noteIdx, "PERFECT!!");
+                if (diff < 35) { hitNote(noteIdx, "PERFECT!!"); pulseLine(); }
                 else if (diff < 65) hitNote(noteIdx, "GREAT!");
                 else if (diff < 95) hitNote(noteIdx, "GOOD");
                 else hitNote(noteIdx, "BAD", true);
