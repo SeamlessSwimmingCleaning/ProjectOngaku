@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Project: Ongaku</title>
+    <style>
+        :root {
+            --primary-cyan: #00ffe5;
+            --dark-bg: #1a1a2e;
+            --ui-panel: rgba(0, 0, 0, 0.9);
+            --text-color: white;
+            --accent: #ff00ff;
+        }
+        body, html {
+            margin: 0; padding: 0; font-family: 'Helvetica', sans-serif;
+            background: var(--dark-bg); color: var(--text-color);
+            overflow: hidden; height: 100vh; touch-action: none;
+        }
+        .screen { position: absolute; width: 100%; height: 100%; display: flex; }
+        .hidden { display: none !important; }
+
+        /* --- YOUR ORIGINAL SIDEBAR --- */
+        .sidebar { width: 220px; background: var(--ui-panel); border-right: 3px solid var(--primary-cyan); padding: 15px; z-index: 10; flex-shrink: 0; }
+        .nav-item { padding: 15px; margin: 8px 0; cursor: pointer; background: rgba(128,128,128,0.2); border-radius: 8px; text-align: center; font-weight: bold; }
+        .selected { border: 2px solid var(--primary-cyan); background: rgba(0, 255, 229, 0.3); }
+        
+        /* --- GAME AREA --- */
+        #game-area { position: relative; width: 100%; max-width: 500px; height: 100%; margin: 0 auto; perspective: 150px; }
+        .lanes { display: flex; height: 100%; transform: rotateX(15deg); background: rgba(255,255,255,0.02); }
+        .lane { flex: 1; border-right: 1px solid rgba(255, 255, 255, 0.1); position: relative; display: flex; flex-direction: column; justify-content: flex-end; }
+        
+        /* --- VISIBLE BOXES AT BOTTOM --- */
+        .hit-box {
+            width: 100%; height: 100px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            background: rgba(0, 255, 229, 0.1);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 1.5rem; color: white;
+            box-sizing: border-box;
+        }
+        .lane-active .hit-box { background: var(--primary-cyan); box-shadow: 0 0 20px var(--primary-cyan); }
+
+        .note { position: absolute; width: 90%; left: 5%; height: 20px; background: var(--primary-cyan); border: 1px solid white; border-radius: 4px; }
+        
+        #hud { position: absolute; top: 20px; width: 100%; text-align: center; pointer-events: none; z-index: 100; }
+        #hp-bar { width: 200px; height: 10px; background: #333; border: 1px solid white; margin: 0 auto; }
+        #hp-fill { width: 100%; height: 100%; background: #00ff00; }
+    </style>
+</head>
+<body>
+
+    <div id="home-screen" class="screen">
+        <div class="sidebar">
+            <h1 style="color:var(--primary-cyan);">ONGAKU</h1>
+            <div class="nav-item" onclick="showSection('songs')">Music Shop</div>
+            <div class="nav-item" onclick="showSection('characters')">Characters</div>
+        </div>
+        
+        <div id="songs" class="content" style="padding: 20px; flex-grow: 1;">
+            <h2>Select Song</h2>
+            <div class="nav-item" onclick="startGame('The Happy Fits - Black Hole.mp3')">Black Hole</div>
+            <div class="nav-item" onclick="startGame('The Happy Fits - Wild in Love (Official Music Video).mp3')">Wild in Love</div>
+        </div>
+
+        <div id="characters" class="content hidden" style="padding: 20px; flex-grow: 1;">
+            <h2>Characters</h2>
+            <div id="char-calvin" class="nav-item" onclick="selectChar('calvin')">Calvin (Healer)</div>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen hidden">
+        <div id="hud">
+            <div id="hp-bar"><div id="hp-fill"></div></div>
+            <div id="score">Score: 0</div>
+        </div>
+        <div id="game-area">
+            <div class="lanes">
+                <div class="lane" id="l0"><div class="hit-box">D</div></div>
+                <div class="lane" id="l1"><div class="hit-box">F</div></div>
+                <div class="lane" id="l2"><div class="hit-box">J</div></div>
+                <div class="lane" id="l3"><div class="hit-box">K</div></div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="music-player"></audio>
+
+    <script>
+        let notes = [], gameActive = false, score = 0, hp = 100;
+        let selectedChar = null;
+        const player = document.getElementById('music-player');
+
+        function showSection(id) {
+            document.getElementById('songs').classList.add('hidden');
+            document.getElementById('characters').classList.add('hidden');
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function selectChar(id) {
+            selectedChar = id;
+            document.getElementById('char-calvin').classList.add('selected');
+        }
+
+        function startGame(fileName) {
+            // SET THE MUSIC SOURCE
+            player.src = fileName; 
+            player.play().catch(e => alert("Please interact with the page first to play music!"));
+
+            document.getElementById('home-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            
+            gameActive = true;
+            score = 0;
+            hp = 100;
+            
+            // Start spawning notes
+            setInterval(() => { if(gameActive) spawnNote(); }, 600);
+            
+            // Character Ability: Calvin heals every 10 seconds
+            if(selectedChar === 'calvin') {
+                setInterval(() => { if(gameActive) { hp = Math.min(100, hp + 10); updateHUD(); } }, 10000);
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function spawnNote() {
+            const lane = Math.floor(Math.random() * 4);
+            const el = document.createElement('div');
+            el.className = 'note';
+            document.getElementById('l' + lane).appendChild(el);
+            notes.push({ el, y: 0, lane });
+        }
+
+        function gameLoop() {
+            if(!gameActive) return;
+            for (let i = notes.length - 1; i >= 0; i--) {
+                let n = notes[i];
+                n.y += 5; // Speed
+                n.el.style.top = n.y + 'px';
+
+                if (n.y > window.innerHeight) {
+                    n.el.remove();
+                    notes.splice(i, 1);
+                    hp -= 10;
+                    updateHUD();
+                }
+            }
+            if(hp <= 0) { alert("Game Over! Score: " + score); location.reload(); }
+            requestAnimationFrame(gameLoop);
+        }
+
+        function checkHit(lane) {
+            const hitLine = window.innerHeight - 100;
+            const noteIdx = notes.findIndex(n => n.lane === lane && n.y > hitLine - 50 && n.y < hitLine + 50);
+            
+            const lEl = document.getElementById('l' + lane);
+            lEl.classList.add('lane-active');
+            setTimeout(() => lEl.classList.remove('lane-active'), 100);
+
+            if (noteIdx !== -1) {
+                notes[noteIdx].el.remove();
+                notes.splice(noteIdx, 1);
+                score += 100;
+                updateHUD();
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById('score').innerText = "Score: " + score;
+            document.getElementById('hp-fill').style.width = hp + "%";
+        }
+
+        // CONTROLS
+        window.addEventListener('keydown', (e) => {
+            const keys = {'d':0, 'f':1, 'j':2, 'k':3};
+            if(keys[e.key] !== undefined) checkHit(keys[e.key]);
+        });
+
+        [0,1,2,3].forEach(i => {
+            document.getElementById('l'+i).addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                checkHit(i);
+            });
+        });
+    </script>
+</body>
+</html>
