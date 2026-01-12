@@ -23,19 +23,13 @@
         .screen { position: absolute; width: 100%; height: 100%; display: flex; z-index: 5; }
         .hidden { display: none !important; }
 
-        /* --- NARROW SIDEBAR --- */
         .sidebar { 
-            width: 140px; /* Smaller sidebar as requested */
-            background: var(--ui-panel); 
-            border-right: 3px solid var(--primary-cyan); 
-            padding: 10px; 
-            z-index: 10; 
-            flex-shrink: 0; 
+            width: 140px; background: var(--ui-panel); border-right: 3px solid var(--primary-cyan); 
+            padding: 10px; z-index: 10; flex-shrink: 0; 
         }
         .nav-item { padding: 12px; margin: 8px 0; cursor: pointer; background: rgba(128,128,128,0.2); border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.85rem; }
         .selected { border: 2px solid var(--primary-cyan); background: rgba(0, 255, 229, 0.3); }
         
-        /* --- GAME AREA --- */
         #game-area { position: relative; width: 100%; max-width: 500px; height: 100%; margin: 0 auto; perspective: 150px; }
         .lanes { display: flex; height: 100%; transform: rotateX(15deg); background: rgba(255,255,255,0.02); position: relative; }
         
@@ -64,10 +58,8 @@
             pointer-events: none; z-index: 100; font-style: italic;
         }
 
-        /* --- NOTES --- */
         .note { position: absolute; width: 90%; left: 5%; height: 25px; background: var(--primary-cyan); border: 2px solid white; border-radius: 4px; z-index: 10; }
         
-        /* --- HUD --- */
         #hud { position: absolute; top: 20px; width: 100%; text-align: center; pointer-events: none; z-index: 100; }
         #hp-bar { width: 250px; height: 15px; background: #333; border: 2px solid white; margin: 0 auto; border-radius: 10px; overflow: hidden; }
         #hp-fill { width: 100%; height: 100%; background: #00ff00; transition: width 0.2s; }
@@ -78,7 +70,7 @@
             text-shadow: 0 0 15px black;
         }
 
-        /* --- END SCREEN STYLING --- */
+        /* Results & Menus */
         .results-list { list-style: none; padding: 0; margin: 20px 0; text-align: left; display: inline-block; }
         .results-list li { font-size: 1.2rem; margin: 5px 0; font-weight: bold; }
         .res-perfect { color: #ffff00; }
@@ -92,6 +84,9 @@
             padding: 40px; border-radius: 20px; text-align: center; z-index: 1000;
         }
         .popup-btn { margin-top: 20px; padding: 15px 30px; background: var(--primary-cyan); color: black; font-weight: bold; border-radius: 10px; cursor: pointer; display: inline-block; }
+        
+        .locked { background: #444 !important; color: #888 !important; cursor: not-allowed !important; border: 2px solid #666 !important; }
+        #unlock-msg { color: var(--hold-green); font-weight: bold; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -106,6 +101,11 @@
             <h2>Select Song</h2>
             <div class="nav-item" onclick="openDiff('The Happy Fits - Black Hole.mp3')">Black Hole</div>
             <div class="nav-item" onclick="openDiff('The Happy Fits - Wild in Love (Official Music Video).mp3')">Wild in Love</div>
+            <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_Achey_Bones_(mp3.pm).mp3')">Achey Bones</div>
+            <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_She_Wants_Me_To_Be_Loved_(mp3.pm).mp3')">She Wants Me To Be Loved</div>
+            <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_Two_of_Many_(mp3.pm).mp3')">Two of Many</div>
+            <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_No_Instructions_(mp3.pm).mp3')">No Instructions</div>
+            <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_Go_Dumb_(mp3.pm).mp3')">Go Dumb</div>
         </div>
         <div id="characters" class="content hidden" style="padding: 20px; flex-grow: 1; overflow-y: auto;">
             <h2>Characters</h2>
@@ -117,9 +117,11 @@
 
     <div id="diff-menu" class="hidden">
         <h2 style="color:var(--primary-cyan)">Select Difficulty</h2>
-        <div class="nav-item" onclick="setDiff(400, 5)">Easy</div>
-        <div class="nav-item" onclick="setDiff(700, 7)">Normal</div>
-        <div class="nav-item" onclick="setDiff(1000, 10)">Hard</div>
+        <div class="nav-item" onclick="setDiff(400, 5, 'easy')">Easy</div>
+        <div class="nav-item" onclick="setDiff(700, 7, 'normal')">Normal</div>
+        <div class="nav-item" onclick="setDiff(1000, 10, 'hard')">Hard</div>
+        <div id="master-btn" class="nav-item locked" onclick="tryMaster()">Master (Locked)</div>
+        <small style="color: #aaa;">Unlock Master by getting < 10 misses on Hard!</small>
     </div>
 
     <div id="game-screen" class="screen hidden">
@@ -141,12 +143,6 @@
         </div>
     </div>
 
-    <div id="pause-menu" class="hidden">
-        <h1 style="color:var(--primary-cyan)">PAUSED</h1>
-        <div class="popup-btn" onclick="togglePause()">RESUME</div>
-        <div class="popup-btn" style="background:#ff4b5c" onclick="location.reload()">QUIT</div>
-    </div>
-
     <div id="game-popup" class="hidden">
         <h1 id="popup-title">SONG CLEAR!</h1>
         <h2 id="popup-score">Score: 0</h2>
@@ -156,6 +152,7 @@
             <li class="res-good">Goods: <span id="res-gd">0</span></li>
             <li class="res-miss">Misses: <span id="res-m">0</span></li>
         </ul>
+        <div id="unlock-msg">MASTER DIFFICULTY UNLOCKED!</div>
         <br>
         <div class="popup-btn" onclick="location.reload()">BACK TO MENU</div>
     </div>
@@ -164,12 +161,14 @@
 
     <script>
         let notes = [], gameActive = false, isPaused = false, score = 0, hp = 100, combo = 0;
-        let counts = { p: 0, gr: 0, gd: 0, m: 0 }; // Added counters
+        let counts = { p: 0, gr: 0, gd: 0, m: 0 };
         let selectedChar = null, currentSeed = 0, spawnSpeed = 700, noteFallSpeed = 6;
-        let tempSong = "";
-        const player = document.getElementById('music-player');
+        let tempSong = "", currentDiff = "";
+        let masterUnlocked = false;
 
+        const player = document.getElementById('music-player');
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
         function playHitSound() {
             const osc = audioCtx.createOscillator();
             const g = audioCtx.createGain();
@@ -192,12 +191,26 @@
             document.getElementById('char-calvin').classList.add('selected');
         }
 
-        function openDiff(song) { tempSong = song; document.getElementById('diff-menu').classList.remove('hidden'); }
+        function openDiff(song) { 
+            tempSong = song; 
+            document.getElementById('diff-menu').classList.remove('hidden'); 
+            const mBtn = document.getElementById('master-btn');
+            if(masterUnlocked) {
+                mBtn.classList.remove('locked');
+                mBtn.innerText = "Master";
+            }
+        }
 
-        function setDiff(spawn, fall) {
-            spawnSpeed = 1400 - spawn; noteFallSpeed = fall;
+        function setDiff(spawn, fall, name) {
+            spawnSpeed = 1400 - spawn; 
+            noteFallSpeed = fall;
+            currentDiff = name;
             document.getElementById('diff-menu').classList.add('hidden');
             startGame(tempSong);
+        }
+
+        function tryMaster() {
+            if(masterUnlocked) setDiff(1200, 14, 'master');
         }
 
         function seededRandom() {
@@ -294,6 +307,15 @@
 
         function showEndScreen(title) {
             gameActive = false; player.pause();
+            
+            // Unlock logic: Hard mode + less than 10 misses
+            if(currentDiff === 'hard' && counts.m < 10) {
+                masterUnlocked = true;
+                document.getElementById('unlock-msg').style.display = 'block';
+            } else {
+                document.getElementById('unlock-msg').style.display = 'none';
+            }
+
             document.getElementById('popup-title').innerText = title;
             document.getElementById('popup-score').innerText = "Total Score: " + score;
             document.getElementById('res-p').innerText = counts.p;
