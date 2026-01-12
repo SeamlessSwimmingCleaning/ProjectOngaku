@@ -70,20 +70,15 @@
             text-shadow: 0 0 15px black;
         }
 
-        /* Results & Menus */
-        .results-list { list-style: none; padding: 0; margin: 20px 0; text-align: left; display: inline-block; }
-        .results-list li { font-size: 1.2rem; margin: 5px 0; font-weight: bold; }
-        .res-perfect { color: #ffff00; }
-        .res-great { color: #ff00ff; }
-        .res-good { color: #00ffff; }
-        .res-miss { color: #ff4b5c; }
-
+        /* --- MENUS --- */
         #game-popup, #diff-menu, #pause-menu {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: var(--ui-panel); border: 4px solid var(--primary-cyan);
             padding: 40px; border-radius: 20px; text-align: center; z-index: 1000;
         }
-        .popup-btn { margin-top: 20px; padding: 15px 30px; background: var(--primary-cyan); color: black; font-weight: bold; border-radius: 10px; cursor: pointer; display: inline-block; }
+        .results-list { list-style: none; padding: 0; margin: 15px 0; text-align: left; display: inline-block; }
+        .results-list li { font-size: 1.1rem; margin: 5px 0; font-weight: bold; }
+        .popup-btn { margin-top: 15px; padding: 12px 25px; background: var(--primary-cyan); color: black; font-weight: bold; border-radius: 10px; cursor: pointer; display: inline-block; }
         
         .locked { background: #444 !important; color: #888 !important; cursor: not-allowed !important; border: 2px solid #666 !important; }
         #unlock-msg { color: var(--hold-green); font-weight: bold; margin-top: 10px; display: none; }
@@ -121,7 +116,7 @@
         <div class="nav-item" onclick="setDiff(700, 7, 'normal')">Normal</div>
         <div class="nav-item" onclick="setDiff(1000, 10, 'hard')">Hard</div>
         <div id="master-btn" class="nav-item locked" onclick="tryMaster()">Master (Locked)</div>
-        <small style="color: #aaa;">Unlock Master by getting < 10 misses on Hard!</small>
+        <small style="color: #aaa;">Get < 10 misses on Hard to unlock!</small>
     </div>
 
     <div id="game-screen" class="screen hidden">
@@ -143,14 +138,20 @@
         </div>
     </div>
 
+    <div id="pause-menu" class="hidden">
+        <h1 style="color:var(--primary-cyan)">PAUSED</h1>
+        <div class="popup-btn" onclick="togglePause()">RESUME</div>
+        <div class="popup-btn" style="background:#ff4b5c" onclick="location.reload()">QUIT</div>
+    </div>
+
     <div id="game-popup" class="hidden">
         <h1 id="popup-title">SONG CLEAR!</h1>
         <h2 id="popup-score">Score: 0</h2>
         <ul class="results-list">
-            <li class="res-perfect">Perfects: <span id="res-p">0</span></li>
-            <li class="res-great">Greats: <span id="res-gr">0</span></li>
-            <li class="res-good">Goods: <span id="res-gd">0</span></li>
-            <li class="res-miss">Misses: <span id="res-m">0</span></li>
+            <li style="color:#ffff00">Perfects: <span id="res-p">0</span></li>
+            <li style="color:#ff00ff">Greats: <span id="res-gr">0</span></li>
+            <li style="color:#00ffff">Goods: <span id="res-gd">0</span></li>
+            <li style="color:#ff4b5c">Misses: <span id="res-m">0</span></li>
         </ul>
         <div id="unlock-msg">MASTER DIFFICULTY UNLOCKED!</div>
         <br>
@@ -195,23 +196,16 @@
             tempSong = song; 
             document.getElementById('diff-menu').classList.remove('hidden'); 
             const mBtn = document.getElementById('master-btn');
-            if(masterUnlocked) {
-                mBtn.classList.remove('locked');
-                mBtn.innerText = "Master";
-            }
+            if(masterUnlocked) { mBtn.classList.remove('locked'); mBtn.innerText = "Master"; }
         }
 
         function setDiff(spawn, fall, name) {
-            spawnSpeed = 1400 - spawn; 
-            noteFallSpeed = fall;
-            currentDiff = name;
+            spawnSpeed = 1400 - spawn; noteFallSpeed = fall; currentDiff = name;
             document.getElementById('diff-menu').classList.add('hidden');
             startGame(tempSong);
         }
 
-        function tryMaster() {
-            if(masterUnlocked) setDiff(1200, 14, 'master');
-        }
+        function tryMaster() { if(masterUnlocked) setDiff(1200, 14, 'master'); }
 
         function seededRandom() {
             let x = Math.sin(currentSeed++) * 10000;
@@ -222,13 +216,18 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
             currentSeed = fileName.length;
             player.src = fileName;
-            player.play();
+            player.play().catch(e => console.log("Audio play failed: ", e));
             document.getElementById('home-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             gameActive = true; score = 0; hp = 100; combo = 0;
             counts = { p: 0, gr: 0, gd: 0, m: 0 };
             updateHUD();
-            setInterval(() => { if(gameActive && !isPaused) spawnNote(); }, spawnSpeed);
+            
+            const spawnInterval = setInterval(() => {
+                if(!gameActive) clearInterval(spawnInterval);
+                if(gameActive && !isPaused) spawnNote();
+            }, spawnSpeed);
+
             if(selectedChar === 'calvin') {
                 setInterval(() => { if(gameActive && !isPaused && hp < 100) { hp = Math.min(100, hp + 15); updateHUD(); } }, 10000);
             }
@@ -307,14 +306,8 @@
 
         function showEndScreen(title) {
             gameActive = false; player.pause();
-            
-            // Unlock logic: Hard mode + less than 10 misses
-            if(currentDiff === 'hard' && counts.m < 10) {
-                masterUnlocked = true;
-                document.getElementById('unlock-msg').style.display = 'block';
-            } else {
-                document.getElementById('unlock-msg').style.display = 'none';
-            }
+            if(currentDiff === 'hard' && counts.m < 10) { masterUnlocked = true; document.getElementById('unlock-msg').style.display = 'block'; }
+            else { document.getElementById('unlock-msg').style.display = 'none'; }
 
             document.getElementById('popup-title').innerText = title;
             document.getElementById('popup-score').innerText = "Total Score: " + score;
