@@ -14,7 +14,7 @@
             --text-color: white;
             --accent-pink: #ff00ff;
             --hold-green: #00ff88;
-            --lane-glow: rgba(0, 255, 229, 0.15);
+            --lane-glow: rgba(0, 255, 229, 0.3); /* Slightly stronger for visibility */
             --gem-color: #ffd700;
         }
         body, html {
@@ -44,8 +44,11 @@
         #game-area { position: relative; width: 90%; max-width: 400px; height: 100%; margin: 0 auto; perspective: 120px; }
         .lanes { display: flex; height: 100%; transform: rotateX(8deg); background: rgba(255,255,255,0.02); position: relative; }
         #perfect-line { position: absolute; bottom: 120px; width: 100%; height: 5px; background: white; box-shadow: 0 0 20px white; z-index: 30; pointer-events: none; }
-        .lane { flex: 1; border-right: 1px solid rgba(255, 255, 255, 0.1); position: relative; display: flex; flex-direction: column; justify-content: flex-end; }
-        .lane-active { background: linear-gradient(to top, var(--lane-glow), transparent); }
+        
+        /* Lane Highlighting */
+        .lane { flex: 1; border-right: 1px solid rgba(255, 255, 255, 0.1); position: relative; display: flex; flex-direction: column; justify-content: flex-end; transition: background 0.1s; }
+        .lane-active { background: linear-gradient(to top, var(--lane-glow), transparent) !important; }
+        
         .hit-box { width: 100%; height: 120px; border: 3px solid var(--primary-cyan); background: rgba(0, 77, 69, 0.9); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 2rem; color: white; box-sizing: border-box; z-index: 20; }
         .note { position: absolute; width: 85%; left: 7.5%; height: 25px; background: var(--primary-cyan); border: 2px solid white; border-radius: 4px; z-index: 10; }
         #combo-display { position: absolute; right: 5%; top: 45%; font-size: 5rem; font-weight: 900; color: rgba(255, 255, 255, 0.3); pointer-events: none; z-index: 100; font-style: italic; }
@@ -142,6 +145,7 @@
     <audio id="music-player" preload="auto"></audio>
 
     <script>
+        // --- DATA ---
         const songData = [
             { id: "achey", name: "Achey Bones", file: "The_Happy_Fits_-_Achey_Bones_(mp3.pm).mp3", cost: 0 },
             { id: "shewants", name: "She Wants Me To Be Loved", file: "The_Happy_Fits_-_She_Wants_Me_To_Be_Loved_(mp3.pm).mp3", cost: 0 },
@@ -172,6 +176,7 @@
             { id: "luka", name: "Luka", ability: "Judgment Shield", cost: 500 }
         ];
 
+        // --- STATE & STORAGE ---
         let gems = parseInt(localStorage.getItem('gems')) || 0;
         let unlockedSongs = JSON.parse(localStorage.getItem('unlockedSongs')) || ["achey", "shewants", "twoofmany", "noinstr", "godumb"];
         let unlockedChars = JSON.parse(localStorage.getItem('unlockedChars')) || ["calvin"];
@@ -185,6 +190,22 @@
         const player = document.getElementById('music-player');
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
+        // --- AUDIO ENGINE ---
+        function playHitSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(550, audioCtx.currentTime);
+            g.gain.setValueAtTime(0.04, audioCtx.currentTime); // Quiet sine wave
+            g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+            osc.connect(g);
+            g.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        // --- UI FUNCTIONS ---
         function updateUI() {
             document.getElementById('gem-count').innerText = Math.floor(gems);
             renderSongList();
@@ -267,6 +288,7 @@
 
         function tryMaster() { if(songUnlocksMaster[tempSongId]) setDiff(1200, 14, 'master'); }
 
+        // --- GAME LOGIC ---
         function startGame(fileName) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             currentSeed = fileName.length;
@@ -318,9 +340,17 @@
 
         function checkHit(lane) {
             if(!gameActive || isPaused) return;
+            
+            // Visual Highlight Back
+            const lEl = document.getElementById('l' + lane);
+            lEl.classList.add('lane-active');
+            setTimeout(() => lEl.classList.remove('lane-active'), 100);
+
             const hitThreshold = window.innerHeight - 120;
             const noteIdx = notes.findIndex(n => n.lane === lane && n.y > hitThreshold - 100 && n.y < hitThreshold + 100);
+            
             if (noteIdx !== -1) {
+                playHitSound(); // Sine Wave Hit Sound Back
                 const diff = Math.abs(notes[noteIdx].y - hitThreshold);
                 if (diff < 35) { counts.p++; hitNote(noteIdx, "PERFECT!!", selectedChars.includes('raina') ? 2 : 1.5); }
                 else if (diff < 65) { counts.gr++; hitNote(noteIdx, "GREAT!", 1.2); }
@@ -380,6 +410,12 @@
         }
 
         updateUI();
+
+        // Keyboard support for testing/desktop
+        window.addEventListener('keydown', (e) => {
+            const keys = { 'd': 0, 'f': 1, 'j': 2, 'k': 3 };
+            if (keys[e.key.toLowerCase()] !== undefined) checkHit(keys[e.key.toLowerCase()]);
+        });
     </script>
 </body>
 </html>
