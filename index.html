@@ -13,7 +13,7 @@
             --accent-pink: #ff00ff;
             --hold-green: #00ff88;
             --trace-yellow: #ffff00;
-            --lane-glow: rgba(0, 255, 229, 0.2);
+            --lane-glow: rgba(0, 255, 229, 0.3);
         }
         body, html {
             margin: 0; padding: 0; font-family: 'Helvetica', sans-serif;
@@ -25,68 +25,47 @@
 
         /* --- SIDEBAR --- */
         .sidebar { width: 180px; background: var(--ui-panel); border-right: 3px solid var(--primary-cyan); padding: 10px; z-index: 10; flex-shrink: 0; }
-        .nav-item { padding: 12px; margin: 5px 0; cursor: pointer; background: rgba(128,128,128,0.2); border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.9rem; }
-        .selected { border: 2px solid var(--primary-cyan); background: rgba(0, 255, 229, 0.3); }
+        .nav-item { padding: 12px; margin: 5px 0; cursor: pointer; background: rgba(128,128,128,0.2); border-radius: 8px; text-align: center; font-weight: bold; }
         
-        /* --- GAME AREA FIX --- */
+        /* --- GAME AREA --- */
         #game-area { 
-            position: relative;
-            width: 100%; 
-            max-width: 500px; 
-            height: 100%; 
-            margin: 0 auto;
-            perspective: 200px; /* Slightly higher for better mobile view */
-            overflow: hidden; 
+            position: relative; width: 100%; max-width: 500px; height: 100%; 
+            margin: 0 auto; perspective: 150px; overflow: hidden; 
         }
         .lanes { 
-            display: flex; 
-            height: 100%; 
-            transform: rotateX(10deg); /* Reduced angle to stop cutting off corners */
-            background: rgba(255,255,255,0.02); 
-            position: relative;
-            width: 100%;
+            display: flex; height: 100%; transform: rotateX(10deg); 
+            background: rgba(255,255,255,0.02); position: relative; width: 100%;
         }
         
-        /* THE PERFECT HIT LINE */
         #perfect-line {
-            position: absolute;
-            bottom: 130px; 
-            width: 100%;
-            height: 4px;
-            background: white;
-            box-shadow: 0 0 15px white;
-            z-index: 40;
-            pointer-events: none;
+            position: absolute; bottom: 130px; width: 100%; height: 4px;
+            background: white; box-shadow: 0 0 15px white; z-index: 40; pointer-events: none;
         }
 
         .lane { 
-            flex: 1; 
-            border-right: 1px solid rgba(255, 255, 255, 0.1); 
-            position: relative; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: flex-end;
-            /* Makes the tap area easier to hit */
-            pointer-events: auto;
+            flex: 1; border-right: 1px solid rgba(255, 255, 255, 0.1); 
+            position: relative; display: flex; flex-direction: column; justify-content: flex-end;
+            touch-action: none; /* Critical for mobile touch */
         }
         .lane-active { background: linear-gradient(to top, var(--lane-glow), transparent); }
         
-        /* THE VISUAL BOXES */
         .hit-box {
-            width: 100%; height: 120px; 
-            border: 3px solid var(--primary-cyan);
-            background: #002b26; 
-            display: flex; align-items: center; justify-content: center; 
-            font-weight: bold; font-size: 1.8rem; color: white;
+            width: 100%; height: 120px; border: 3px solid var(--primary-cyan);
+            background: rgba(0, 77, 69, 0.8); display: flex; align-items: center; 
+            justify-content: center; font-weight: bold; font-size: 1.8rem; color: white;
             box-sizing: border-box; z-index: 20;
         }
         .lane-active .hit-box { background: var(--primary-cyan); color: black; }
 
+        /* --- COMBO TRACKER --- */
+        #combo-container {
+            position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+            font-size: 5rem; font-weight: 900; color: rgba(255, 255, 255, 0.5);
+            pointer-events: none; z-index: 100; font-style: italic;
+        }
+
         /* --- NOTES --- */
         .note { position: absolute; width: 85%; left: 7.5%; height: 20px; background: var(--primary-cyan); border: 2px solid white; border-radius: 4px; z-index: 10; }
-        .note-flick { background: var(--accent-pink); border-top: 6px solid white; }
-        .note-hold { background: var(--hold-green); height: 100px; border-radius: 10px; opacity: 0.8; }
-        .note-trace { background: var(--trace-yellow); height: 12px; border-radius: 50%; box-shadow: 0 0 10px var(--trace-yellow); }
         
         /* --- HUD --- */
         #hud { position: absolute; top: 10px; width: 100%; text-align: center; pointer-events: none; z-index: 100; }
@@ -102,8 +81,7 @@
         #game-popup, #diff-menu, #pause-menu {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: var(--ui-panel); border: 3px solid var(--primary-cyan);
-            padding: 30px; border-radius: 15px; text-align: center; z-index: 1000;
-            width: 80%; max-width: 300px;
+            padding: 30px; border-radius: 15px; text-align: center; z-index: 1000; width: 80%; max-width: 300px;
         }
         .popup-btn { margin-top: 15px; padding: 12px 24px; background: var(--primary-cyan); color: black; font-weight: bold; border-radius: 8px; cursor: pointer; display: inline-block; }
     </style>
@@ -112,7 +90,7 @@
 
     <div id="home-screen" class="screen">
         <div class="sidebar">
-            <h1 style="color:var(--primary-cyan); font-size: 1.2rem;">ONGAKU</h1>
+            <h1 style="color:var(--primary-cyan);">ONGAKU</h1>
             <div class="nav-item" onclick="showSection('songs')">Music Shop</div>
             <div class="nav-item" onclick="showSection('characters')">Characters</div>
         </div>
@@ -130,17 +108,18 @@
     </div>
 
     <div id="diff-menu" class="hidden">
-        <h2 style="color:var(--primary-cyan)">Difficulty</h2>
+        <h2>Difficulty</h2>
         <div class="nav-item" onclick="setDiff(400, 5)">Easy</div>
         <div class="nav-item" onclick="setDiff(700, 7)">Normal</div>
         <div class="nav-item" onclick="setDiff(1000, 9)">Hard</div>
     </div>
 
     <div id="game-screen" class="screen hidden">
+        <div id="combo-container">0</div>
         <div id="hud">
             <div id="hp-bar"><div id="hp-fill"></div></div>
             <div id="score-val" style="font-size: 1.2rem; font-weight: bold; margin-top: 5px;">Score: 0</div>
-            <button style="pointer-events: auto; margin-top: 5px; padding: 5px 15px;" onclick="togglePause()">PAUSE</button>
+            <button style="pointer-events: auto; margin-top: 5px;" onclick="togglePause()">PAUSE</button>
         </div>
         <div id="judgment-text"></div>
         <div id="game-area">
@@ -155,7 +134,7 @@
     </div>
 
     <div id="pause-menu" class="hidden">
-        <h1 style="color:var(--primary-cyan)">PAUSED</h1>
+        <h1>PAUSED</h1>
         <div class="popup-btn" onclick="togglePause()">RESUME</div>
         <div class="popup-btn" style="background:#ff4b5c" onclick="location.reload()">QUIT</div>
     </div>
@@ -169,10 +148,26 @@
     <audio id="music-player" preload="auto"></audio>
 
     <script>
-        let notes = [], gameActive = false, isPaused = false, score = 0, hp = 100;
+        let notes = [], gameActive = false, isPaused = false, score = 0, hp = 100, combo = 0;
         let selectedChar = null, currentSeed = 0, spawnSpeed = 700, noteFallSpeed = 6;
         let tempSong = "";
         const player = document.getElementById('music-player');
+        
+        // Audio Synth Setup
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSine() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
 
         function showSection(id) {
             document.getElementById('songs').classList.add('hidden');
@@ -185,55 +180,37 @@
             document.getElementById('char-calvin').classList.add('selected');
         }
 
-        function openDiff(song) { 
-            tempSong = song; 
-            document.getElementById('diff-menu').classList.remove('hidden'); 
-        }
+        function openDiff(song) { tempSong = song; document.getElementById('diff-menu').classList.remove('hidden'); }
 
         function setDiff(spawn, fall) {
-            spawnSpeed = 1500 - spawn;
-            noteFallSpeed = fall;
+            spawnSpeed = 1500 - spawn; noteFallSpeed = fall;
             document.getElementById('diff-menu').classList.add('hidden');
             startGame(tempSong);
         }
 
-        function seededRandom() {
-            let x = Math.sin(currentSeed++) * 10000;
-            return x - Math.floor(x);
-        }
-
         function startGame(fileName) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             currentSeed = fileName.length;
             player.src = fileName;
-            player.play().catch(e => console.log("Play blocked"));
+            player.play();
             document.getElementById('home-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
-            gameActive = true;
-            score = 0; hp = 100;
+            gameActive = true; score = 0; hp = 100; combo = 0;
             updateHUD();
             
             const spawnInterval = setInterval(() => {
                 if(!gameActive) clearInterval(spawnInterval);
                 if(gameActive && !isPaused) spawnNote();
             }, spawnSpeed);
-
-            if(selectedChar === 'calvin') {
-                setInterval(() => { if(gameActive && !isPaused && hp < 100) { hp = Math.min(100, hp + 15); updateHUD(); } }, 10000);
-            }
             requestAnimationFrame(gameLoop);
         }
 
         function spawnNote() {
-            const lane = Math.floor(seededRandom() * 4);
-            const typeProb = seededRandom();
-            let type = 'normal';
-            if (typeProb > 0.9) type = 'flick';
-            else if (typeProb > 0.8) type = 'hold';
-            else if (typeProb > 0.7) type = 'trace';
+            const lane = Math.floor(Math.random() * 4);
             const el = document.createElement('div');
-            el.className = 'note note-' + type;
+            el.className = 'note';
             document.getElementById('l' + lane).appendChild(el);
-            notes.push({ el, y: -50, lane, type });
+            notes.push({ el, y: -50, lane });
         }
 
         function gameLoop() {
@@ -242,18 +219,13 @@
                 let n = notes[i];
                 n.y += noteFallSpeed;
                 n.el.style.top = n.y + 'px';
-                
-                const lineY = window.innerHeight - 130;
-                if (n.type === 'trace' && n.y > lineY) { hitNote(i, "PERFECT!!"); continue; }
-                
                 if (n.y > window.innerHeight) {
                     n.el.remove(); notes.splice(i, 1);
-                    if (n.type !== 'trace') { hp -= 10; showJudgment("MISS", "#888888"); }
+                    hp -= 10; combo = 0; showJudgment("MISS", "#888888");
                     updateHUD();
                 }
             }
             if(hp <= 0) showEndScreen("GAME FAILED");
-            else if(player.ended) showEndScreen("SONG CLEAR!");
             else requestAnimationFrame(gameLoop);
         }
 
@@ -263,30 +235,30 @@
             lEl.classList.add('lane-active');
             setTimeout(() => lEl.classList.remove('lane-active'), 100);
 
-            const hitThreshold = window.innerHeight - 130;
-            // Larger hit window for mobile detection (120px up or down from line)
-            const noteIdx = notes.findIndex(n => n.lane === lane && Math.abs(n.y - hitThreshold) < 120);
+            const lineY = window.innerHeight - 130;
+            const noteIdx = notes.findIndex(n => n.lane === lane && Math.abs(n.y - lineY) < 100);
             
             if (noteIdx !== -1) {
-                const diff = Math.abs(notes[noteIdx].y - hitThreshold);
-                if (diff < 40) hitNote(noteIdx, "PERFECT!!");
-                else if (diff < 80) hitNote(noteIdx, "GREAT!");
-                else hitNote(noteIdx, "GOOD");
+                playSine();
+                const diff = Math.abs(notes[noteIdx].y - lineY);
+                combo++;
+                if (diff < 30) hitNote(noteIdx, "PERFECT!!", 1.5);
+                else if (diff < 60) hitNote(noteIdx, "GREAT!", 1.2);
+                else hitNote(noteIdx, "GOOD", 1.0);
             }
         }
 
-        function hitNote(idx, text) {
+        function hitNote(idx, text, multiplier) {
             notes[idx].el.remove(); notes.splice(idx, 1);
-            score += 100;
+            score += Math.floor(100 * multiplier);
             showJudgment(text, text === "PERFECT!!" ? "#ffff00" : "#ff00ff");
             updateHUD();
         }
 
         function showJudgment(txt, color) {
             const j = document.getElementById('judgment-text');
-            j.innerText = txt; j.style.color = color;
-            j.style.opacity = 1;
-            setTimeout(() => { if(j.innerText === txt) j.style.opacity = 0; }, 500);
+            j.innerText = txt; j.style.color = color; j.style.opacity = 1;
+            setTimeout(() => { j.style.opacity = 0; }, 400);
         }
 
         function togglePause() {
@@ -298,14 +270,13 @@
         function updateHUD() {
             document.getElementById('score-val').innerText = "Score: " + score;
             document.getElementById('hp-fill').style.width = hp + "%";
-            document.getElementById('hp-fill').style.background = hp > 30 ? "#00ff00" : "#ff0000";
+            document.getElementById('combo-container').innerText = combo;
         }
 
         function showEndScreen(title) {
             gameActive = false; player.pause();
-            document.getElementById('popup-title').innerText = title;
-            document.getElementById('popup-score').innerText = "Final Score: " + score;
             document.getElementById('game-popup').classList.remove('hidden');
+            document.getElementById('popup-score').innerText = "Score: " + score;
         }
 
         window.addEventListener('keydown', (e) => {
