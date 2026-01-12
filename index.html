@@ -73,6 +73,12 @@
             <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_Two_of_Many_(mp3.pm).mp3')">Two of Many</div>
             <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_No_Instructions_(mp3.pm).mp3')">No Instructions</div>
             <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_Go_Dumb_(mp3.pm).mp3')">Go Dumb</div>
+            <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_Heart_of_a_Dancer_(mp3.pm).mp3')">Heart of a Dancer</div>
+            <div class="nav-item" onclick="openDiff('The Happy Fits  — \"Do You See Me?\"  | Neighborhoods (Live in Woodstock, NY).mp3')">Do You See Me?</div>
+            <div class="nav-item" onclick="openDiff('The Happy Fits - Mary - Live at Diamond City Studio.mp3')">Mary</div>
+            <div class="nav-item" onclick="openDiff('The Happy Fits - Relimerence (Official Audio).mp3')">Relimerence</div>
+            <div class="nav-item" onclick="openDiff('The Happy Fits - Cold Turkey (Official Audio).mp3')">Cold Turkey</div>
+            <div class="nav-item" onclick="openDiff('The Happy Fits - Little One (Official Audio).mp3')">Little One</div>
         </div>
         <div id="characters" class="content hidden" style="padding: 15px; flex-grow: 1; overflow-y: auto;">
             <h2>Party (Max 3)</h2>
@@ -89,6 +95,7 @@
         <div class="nav-item" onclick="setDiff(700, 7, 'normal')">Normal</div>
         <div class="nav-item" onclick="setDiff(1000, 10, 'hard')">Hard</div>
         <div id="master-btn" class="nav-item locked" onclick="tryMaster()">Master (Locked)</div>
+        <div class="popup-btn" style="background:#444; color: white;" onclick="document.getElementById('diff-menu').classList.add('hidden')">Cancel</div>
     </div>
 
     <div id="game-screen" class="screen hidden">
@@ -126,7 +133,7 @@
             <li style="color:#ffa500">Bad: <span id="res-b">0</span></li>
             <li style="color:#ff4b5c">Miss: <span id="res-m">0</span></li>
         </ul>
-        <div id="unlock-msg">MASTER UNLOCKED!</div>
+        <div id="unlock-msg">MASTER UNLOCKED FOR THIS SONG!</div>
         <br>
         <div class="popup-btn" onclick="location.reload()">MENU</div>
     </div>
@@ -140,8 +147,8 @@
         let currentSeed = 0, spawnSpeed = 700, noteFallSpeed = 6;
         let tempSong = "", currentDiff = "";
         
-        // Persistent Master Unlock using localStorage
-        let masterUnlocked = localStorage.getItem('masterUnlocked') === 'true';
+        // Load global unlock data from local storage
+        let songUnlocks = JSON.parse(localStorage.getItem('songUnlocks')) || {};
 
         const player = document.getElementById('music-player');
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -177,9 +184,14 @@
             tempSong = song; 
             document.getElementById('diff-menu').classList.remove('hidden'); 
             const mBtn = document.getElementById('master-btn');
-            if(masterUnlocked) {
+            
+            // Check if this specific song has Master unlocked
+            if(songUnlocks[song] === true) {
                 mBtn.classList.remove('locked');
                 mBtn.innerText = "Master";
+            } else {
+                mBtn.classList.add('locked');
+                mBtn.innerText = "Master (Locked)";
             }
         }
 
@@ -189,7 +201,9 @@
             startGame(tempSong);
         }
 
-        function tryMaster() { if(masterUnlocked) setDiff(1200, 14, 'master'); }
+        function tryMaster() { 
+            if(songUnlocks[tempSong] === true) setDiff(1200, 14, 'master'); 
+        }
 
         function startGame(fileName) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -207,7 +221,6 @@
                 if(gameActive && !isPaused) spawnNote();
             }, spawnSpeed);
 
-            // Special Abilities Loop
             setInterval(() => {
                 if(!gameActive || isPaused) return;
                 if(selectedChars.includes('calvin') && hp < 100) { hp = Math.min(100, hp + 10); updateHUD(); }
@@ -233,7 +246,6 @@
                 n.el.style.top = n.y + 'px';
                 if (n.y > window.innerHeight) {
                     n.el.remove(); notes.splice(i, 1);
-                    // Luke Ability: Shields 40% of miss damage
                     let dmg = selectedChars.includes('luke') ? 6 : 10;
                     hp -= dmg; combo = 0; counts.m++; 
                     showJudgment("MISS", "#888888");
@@ -259,15 +271,14 @@
                 const diff = Math.abs(notes[noteIdx].y - hitThreshold);
                 if (diff < 35) { 
                     counts.p++; 
-                    let bonus = selectedChars.includes('raina') ? 200 : 150; // Raina bonus
-                    hitNote(noteIdx, "PERFECT!!", bonus/100); 
+                    let bonus = selectedChars.includes('raina') ? 2.0 : 1.5;
+                    hitNote(noteIdx, "PERFECT!!", bonus); 
                 }
                 else if (diff < 65) { counts.gr++; hitNote(noteIdx, "GREAT!", 1.2); }
                 else if (diff < 95) { counts.gd++; hitNote(noteIdx, "GOOD", 1.0); }
                 else { 
                     counts.b++;
-                    // Nico Ability: 20% chance to save combo on Bad
-                    if (selectedChars.includes('nico') && Math.random() < 0.2) {
+                    if (selectedChars.includes('nico') && Math.random() < 0.25) {
                         hitNote(noteIdx, "COMBO SAVE", 0.5);
                     } else {
                         combo = 0; hitNote(noteIdx, "BAD", 0.5, true); 
@@ -304,9 +315,10 @@
         function showEndScreen(title) {
             gameActive = false; player.pause();
             
+            // Per-song Unlock Logic
             if(currentDiff === 'hard' && counts.m < 10) { 
-                masterUnlocked = true;
-                localStorage.setItem('masterUnlocked', 'true'); // Save to memory!
+                songUnlocks[tempSong] = true;
+                localStorage.setItem('songUnlocks', JSON.stringify(songUnlocks));
                 document.getElementById('unlock-msg').style.display = 'block'; 
             } else {
                 document.getElementById('unlock-msg').style.display = 'none';
@@ -324,3 +336,4 @@
     </script>
 </body>
 </html>
+     
