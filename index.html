@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Project: Ongaku</title>
     <style>
         :root {
@@ -18,49 +18,46 @@
         body, html {
             margin: 0; padding: 0; font-family: 'Helvetica', sans-serif;
             background: var(--dark-bg); color: var(--text-color);
-            overflow: hidden; height: 100vh; touch-action: none;
+            overflow: hidden; height: 100vh; width: 100vw; touch-action: none;
         }
         .screen { position: absolute; width: 100%; height: 100%; display: flex; z-index: 5; }
         .hidden { display: none !important; }
 
         /* --- SIDEBAR --- */
-        .sidebar { width: 220px; background: var(--ui-panel); border-right: 3px solid var(--primary-cyan); padding: 15px; z-index: 10; flex-shrink: 0; }
-        .nav-item { padding: 15px; margin: 8px 0; cursor: pointer; background: rgba(128,128,128,0.2); border-radius: 8px; text-align: center; font-weight: bold; }
+        .sidebar { width: 180px; background: var(--ui-panel); border-right: 3px solid var(--primary-cyan); padding: 10px; z-index: 10; flex-shrink: 0; }
+        .nav-item { padding: 12px; margin: 5px 0; cursor: pointer; background: rgba(128,128,128,0.2); border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.9rem; }
         .selected { border: 2px solid var(--primary-cyan); background: rgba(0, 255, 229, 0.3); }
         
         /* --- GAME AREA FIX --- */
         #game-area { 
-            position: absolute; 
-            bottom: 0; /* Keeps it from cutting off */
-            left: 50%;
-            transform: translateX(-50%);
+            position: relative;
             width: 100%; 
             max-width: 500px; 
             height: 100%; 
-            perspective: 150px; 
+            margin: 0 auto;
+            perspective: 200px; /* Slightly higher for better mobile view */
             overflow: hidden; 
         }
         .lanes { 
             display: flex; 
             height: 100%; 
-            transform: rotateX(15deg); 
+            transform: rotateX(10deg); /* Reduced angle to stop cutting off corners */
             background: rgba(255,255,255,0.02); 
             position: relative;
-            padding-bottom: 50px; /* Buffer to prevent cut-off */
+            width: 100%;
         }
         
-        /* THE LINE YOU PRESS ON */
+        /* THE PERFECT HIT LINE */
         #perfect-line {
             position: absolute;
-            bottom: 140px; /* Positioned exactly for the hit logic */
+            bottom: 130px; 
             width: 100%;
-            height: 6px;
+            height: 4px;
             background: white;
-            box-shadow: 0 0 20px white;
+            box-shadow: 0 0 15px white;
             z-index: 40;
             pointer-events: none;
         }
-        .line-pulse { background: var(--primary-cyan) !important; box-shadow: 0 0 30px var(--primary-cyan); }
 
         .lane { 
             flex: 1; 
@@ -69,88 +66,90 @@
             display: flex; 
             flex-direction: column; 
             justify-content: flex-end;
+            /* Makes the tap area easier to hit */
+            pointer-events: auto;
         }
         .lane-active { background: linear-gradient(to top, var(--lane-glow), transparent); }
         
-        /* THE TEAL BOXES */
+        /* THE VISUAL BOXES */
         .hit-box {
-            width: 100%; height: 130px; 
-            border: 5px solid var(--primary-cyan) !important;
-            background: #00332d !important; 
+            width: 100%; height: 120px; 
+            border: 3px solid var(--primary-cyan);
+            background: #002b26; 
             display: flex; align-items: center; justify-content: center; 
-            font-weight: bold; font-size: 2.5rem; color: white;
+            font-weight: bold; font-size: 1.8rem; color: white;
             box-sizing: border-box; z-index: 20;
         }
-        .lane-active .hit-box { background: var(--primary-cyan) !important; color: black; }
+        .lane-active .hit-box { background: var(--primary-cyan); color: black; }
 
         /* --- NOTES --- */
-        .note { position: absolute; width: 90%; left: 5%; height: 25px; background: var(--primary-cyan); border: 2px solid white; border-radius: 4px; z-index: 10; }
-        .note-flick { background: var(--accent-pink); border-top: 8px solid white; }
-        .note-hold { background: var(--hold-green); height: 120px; border-radius: 15px; opacity: 0.8; }
-        .note-trace { background: var(--trace-yellow); height: 15px; border-radius: 50%; box-shadow: 0 0 15px var(--trace-yellow); }
+        .note { position: absolute; width: 85%; left: 7.5%; height: 20px; background: var(--primary-cyan); border: 2px solid white; border-radius: 4px; z-index: 10; }
+        .note-flick { background: var(--accent-pink); border-top: 6px solid white; }
+        .note-hold { background: var(--hold-green); height: 100px; border-radius: 10px; opacity: 0.8; }
+        .note-trace { background: var(--trace-yellow); height: 12px; border-radius: 50%; box-shadow: 0 0 10px var(--trace-yellow); }
         
-        /* --- HUD & POPUPS --- */
-        #hud { position: absolute; top: 20px; width: 100%; text-align: center; pointer-events: none; z-index: 100; }
-        #hp-bar { width: 250px; height: 15px; background: #333; border: 2px solid white; margin: 0 auto; border-radius: 10px; overflow: hidden; }
-        #hp-fill { width: 100%; height: 100%; background: #00ff00; transition: width 0.2s; }
+        /* --- HUD --- */
+        #hud { position: absolute; top: 10px; width: 100%; text-align: center; pointer-events: none; z-index: 100; }
+        #hp-bar { width: 200px; height: 12px; background: #333; border: 2px solid white; margin: 0 auto; border-radius: 10px; overflow: hidden; }
+        #hp-fill { width: 100%; height: 100%; background: #00ff00; }
         
         #judgment-text { 
             position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 3.5rem; font-weight: 900; z-index: 100; pointer-events: none;
-            text-shadow: 0 0 15px black;
+            font-size: 2.5rem; font-weight: 900; z-index: 100; pointer-events: none;
+            text-shadow: 0 0 10px black; opacity: 0;
         }
 
         #game-popup, #diff-menu, #pause-menu {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: var(--ui-panel); border: 4px solid var(--primary-cyan);
-            padding: 40px; border-radius: 20px; text-align: center; z-index: 1000;
-            min-width: 300px;
+            background: var(--ui-panel); border: 3px solid var(--primary-cyan);
+            padding: 30px; border-radius: 15px; text-align: center; z-index: 1000;
+            width: 80%; max-width: 300px;
         }
-        .popup-btn { margin-top: 20px; padding: 15px 30px; background: var(--primary-cyan); color: black; font-weight: bold; border-radius: 10px; cursor: pointer; display: inline-block; }
+        .popup-btn { margin-top: 15px; padding: 12px 24px; background: var(--primary-cyan); color: black; font-weight: bold; border-radius: 8px; cursor: pointer; display: inline-block; }
     </style>
 </head>
 <body>
 
     <div id="home-screen" class="screen">
         <div class="sidebar">
-            <h1 style="color:var(--primary-cyan);">ONGAKU</h1>
+            <h1 style="color:var(--primary-cyan); font-size: 1.2rem;">ONGAKU</h1>
             <div class="nav-item" onclick="showSection('songs')">Music Shop</div>
             <div class="nav-item" onclick="showSection('characters')">Characters</div>
         </div>
-        <div id="songs" class="content" style="padding: 20px; flex-grow: 1;">
-            <h2>Select Song</h2>
+        <div id="songs" class="content" style="padding: 15px; flex-grow: 1;">
+            <h2>Music Shop</h2>
             <div class="nav-item" onclick="openDiff('The Happy Fits - Black Hole.mp3')">Black Hole</div>
             <div class="nav-item" onclick="openDiff('The Happy Fits - Wild in Love (Official Music Video).mp3')">Wild in Love</div>
         </div>
-        <div id="characters" class="content hidden" style="padding: 20px; flex-grow: 1;">
+        <div id="characters" class="content hidden" style="padding: 15px; flex-grow: 1;">
             <h2>Characters</h2>
             <div id="char-calvin" class="nav-item" onclick="selectChar('calvin')">
-                <strong>Calvin</strong><br><small>Ability: Heals 15 HP every 10 seconds</small>
+                <strong>Calvin</strong><br><small>Ability: Heals 15 HP every 10s</small>
             </div>
         </div>
     </div>
 
     <div id="diff-menu" class="hidden">
-        <h2 style="color:var(--primary-cyan)">Select Difficulty</h2>
+        <h2 style="color:var(--primary-cyan)">Difficulty</h2>
         <div class="nav-item" onclick="setDiff(400, 5)">Easy</div>
         <div class="nav-item" onclick="setDiff(700, 7)">Normal</div>
-        <div class="nav-item" onclick="setDiff(1000, 10)">Hard</div>
+        <div class="nav-item" onclick="setDiff(1000, 9)">Hard</div>
     </div>
 
     <div id="game-screen" class="screen hidden">
         <div id="hud">
             <div id="hp-bar"><div id="hp-fill"></div></div>
-            <div id="score-val" style="font-size: 1.5rem; font-weight: bold; margin-top: 10px;">Score: 0</div>
-            <button style="pointer-events: auto; margin-top: 10px;" onclick="togglePause()">PAUSE</button>
+            <div id="score-val" style="font-size: 1.2rem; font-weight: bold; margin-top: 5px;">Score: 0</div>
+            <button style="pointer-events: auto; margin-top: 5px; padding: 5px 15px;" onclick="togglePause()">PAUSE</button>
         </div>
         <div id="judgment-text"></div>
         <div id="game-area">
             <div id="perfect-line"></div>
             <div class="lanes">
-                <div class="lane" id="l0" onmousedown="checkHit(0)" ontouchstart="checkHit(0)"><div class="hit-box">D</div></div>
-                <div class="lane" id="l1" onmousedown="checkHit(1)" ontouchstart="checkHit(1)"><div class="hit-box">F</div></div>
-                <div class="lane" id="l2" onmousedown="checkHit(2)" ontouchstart="checkHit(2)"><div class="hit-box">J</div></div>
-                <div class="lane" id="l3" onmousedown="checkHit(3)" ontouchstart="checkHit(3)"><div class="hit-box">K</div></div>
+                <div class="lane" id="l0" onpointerdown="checkHit(0)"><div class="hit-box">D</div></div>
+                <div class="lane" id="l1" onpointerdown="checkHit(1)"><div class="hit-box">F</div></div>
+                <div class="lane" id="l2" onpointerdown="checkHit(2)"><div class="hit-box">J</div></div>
+                <div class="lane" id="l3" onpointerdown="checkHit(3)"><div class="hit-box">K</div></div>
             </div>
         </div>
     </div>
@@ -164,7 +163,7 @@
     <div id="game-popup" class="hidden">
         <h1 id="popup-title">GAME OVER</h1>
         <p id="popup-score">Score: 0</p>
-        <div class="popup-btn" onclick="location.reload()">BACK TO MENU</div>
+        <div class="popup-btn" onclick="location.reload()">MENU</div>
     </div>
 
     <audio id="music-player" preload="auto"></audio>
@@ -186,10 +185,13 @@
             document.getElementById('char-calvin').classList.add('selected');
         }
 
-        function openDiff(song) { tempSong = song; document.getElementById('diff-menu').classList.remove('hidden'); }
+        function openDiff(song) { 
+            tempSong = song; 
+            document.getElementById('diff-menu').classList.remove('hidden'); 
+        }
 
         function setDiff(spawn, fall) {
-            spawnSpeed = 1400 - spawn;
+            spawnSpeed = 1500 - spawn;
             noteFallSpeed = fall;
             document.getElementById('diff-menu').classList.add('hidden');
             startGame(tempSong);
@@ -203,13 +205,18 @@
         function startGame(fileName) {
             currentSeed = fileName.length;
             player.src = fileName;
-            player.play();
+            player.play().catch(e => console.log("Play blocked"));
             document.getElementById('home-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             gameActive = true;
             score = 0; hp = 100;
             updateHUD();
-            setInterval(() => { if(gameActive && !isPaused) spawnNote(); }, spawnSpeed);
+            
+            const spawnInterval = setInterval(() => {
+                if(!gameActive) clearInterval(spawnInterval);
+                if(gameActive && !isPaused) spawnNote();
+            }, spawnSpeed);
+
             if(selectedChar === 'calvin') {
                 setInterval(() => { if(gameActive && !isPaused && hp < 100) { hp = Math.min(100, hp + 15); updateHUD(); } }, 10000);
             }
@@ -220,13 +227,13 @@
             const lane = Math.floor(seededRandom() * 4);
             const typeProb = seededRandom();
             let type = 'normal';
-            if (typeProb > 0.85) type = 'flick';
-            else if (typeProb > 0.75) type = 'hold';
-            else if (typeProb > 0.65) type = 'trace';
+            if (typeProb > 0.9) type = 'flick';
+            else if (typeProb > 0.8) type = 'hold';
+            else if (typeProb > 0.7) type = 'trace';
             const el = document.createElement('div');
             el.className = 'note note-' + type;
             document.getElementById('l' + lane).appendChild(el);
-            notes.push({ el, y: -100, lane, type });
+            notes.push({ el, y: -50, lane, type });
         }
 
         function gameLoop() {
@@ -236,10 +243,8 @@
                 n.y += noteFallSpeed;
                 n.el.style.top = n.y + 'px';
                 
-                // HIT LOGIC CENTERED ON THE WHITE LINE
-                const lineY = window.innerHeight - 140;
-
-                if (n.type === 'trace' && n.y > lineY) { hitNote(i, "PERFECT!!"); pulseLine(); continue; }
+                const lineY = window.innerHeight - 130;
+                if (n.type === 'trace' && n.y > lineY) { hitNote(i, "PERFECT!!"); continue; }
                 
                 if (n.y > window.innerHeight) {
                     n.el.remove(); notes.splice(i, 1);
@@ -252,34 +257,28 @@
             else requestAnimationFrame(gameLoop);
         }
 
-        function pulseLine() {
-            const line = document.getElementById('perfect-line');
-            line.classList.add('line-pulse');
-            setTimeout(() => line.classList.remove('line-pulse'), 80);
-        }
-
         function checkHit(lane) {
             if(!gameActive || isPaused) return;
             const lEl = document.getElementById('l' + lane);
             lEl.classList.add('lane-active');
-            setTimeout(() => lEl.classList.remove('lane-active'), 150);
+            setTimeout(() => lEl.classList.remove('lane-active'), 100);
 
-            const hitThreshold = window.innerHeight - 140;
-            const noteIdx = notes.findIndex(n => n.lane === lane && n.y > hitThreshold - 80 && n.y < hitThreshold + 80);
+            const hitThreshold = window.innerHeight - 130;
+            // Larger hit window for mobile detection (120px up or down from line)
+            const noteIdx = notes.findIndex(n => n.lane === lane && Math.abs(n.y - hitThreshold) < 120);
             
             if (noteIdx !== -1) {
                 const diff = Math.abs(notes[noteIdx].y - hitThreshold);
-                if (diff < 30) { hitNote(noteIdx, "PERFECT!!"); pulseLine(); }
-                else if (diff < 60) hitNote(noteIdx, "GREAT!");
-                else if (diff < 90) hitNote(noteIdx, "GOOD");
-                else hitNote(noteIdx, "BAD", true);
+                if (diff < 40) hitNote(noteIdx, "PERFECT!!");
+                else if (diff < 80) hitNote(noteIdx, "GREAT!");
+                else hitNote(noteIdx, "GOOD");
             }
         }
 
-        function hitNote(idx, text, isBad = false) {
+        function hitNote(idx, text) {
             notes[idx].el.remove(); notes.splice(idx, 1);
-            if(!isBad) score += 100; else hp -= 5;
-            showJudgment(text, text === "PERFECT!!" ? "#ffff00" : (text === "GREAT!" ? "#ff00ff" : "#00ffff"));
+            score += 100;
+            showJudgment(text, text === "PERFECT!!" ? "#ffff00" : "#ff00ff");
             updateHUD();
         }
 
@@ -287,7 +286,7 @@
             const j = document.getElementById('judgment-text');
             j.innerText = txt; j.style.color = color;
             j.style.opacity = 1;
-            setTimeout(() => { j.style.opacity = 0; }, 500);
+            setTimeout(() => { if(j.innerText === txt) j.style.opacity = 0; }, 500);
         }
 
         function togglePause() {
