@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Project: Ongaku</title>
     <style>
         :root {
@@ -13,77 +13,75 @@
             --accent-pink: #ff00ff;
             --hold-green: #00ff88;
             --trace-yellow: #ffff00;
-            --lane-glow: rgba(0, 255, 229, 0.3);
+            --lane-glow: rgba(0, 255, 229, 0.15);
         }
         body, html {
             margin: 0; padding: 0; font-family: 'Helvetica', sans-serif;
             background: var(--dark-bg); color: var(--text-color);
-            overflow: hidden; height: 100vh; width: 100vw; touch-action: none;
+            overflow: hidden; height: 100vh; touch-action: none;
         }
         .screen { position: absolute; width: 100%; height: 100%; display: flex; z-index: 5; }
         .hidden { display: none !important; }
 
         /* --- SIDEBAR --- */
-        .sidebar { width: 180px; background: var(--ui-panel); border-right: 3px solid var(--primary-cyan); padding: 10px; z-index: 10; flex-shrink: 0; }
-        .nav-item { padding: 12px; margin: 5px 0; cursor: pointer; background: rgba(128,128,128,0.2); border-radius: 8px; text-align: center; font-weight: bold; }
+        .sidebar { width: 220px; background: var(--ui-panel); border-right: 3px solid var(--primary-cyan); padding: 15px; z-index: 10; flex-shrink: 0; }
+        .nav-item { padding: 15px; margin: 8px 0; cursor: pointer; background: rgba(128,128,128,0.2); border-radius: 8px; text-align: center; font-weight: bold; }
+        .selected { border: 2px solid var(--primary-cyan); background: rgba(0, 255, 229, 0.3); }
         
         /* --- GAME AREA --- */
-        #game-area { 
-            position: relative; width: 100%; max-width: 500px; height: 100%; 
-            margin: 0 auto; perspective: 150px; overflow: hidden; 
-        }
-        .lanes { 
-            display: flex; height: 100%; transform: rotateX(10deg); 
-            background: rgba(255,255,255,0.02); position: relative; width: 100%;
-        }
+        #game-area { position: relative; width: 100%; max-width: 500px; height: 100%; margin: 0 auto; perspective: 150px; }
+        .lanes { display: flex; height: 100%; transform: rotateX(15deg); background: rgba(255,255,255,0.02); position: relative; }
         
+        /* THE LINE */
         #perfect-line {
-            position: absolute; bottom: 130px; width: 100%; height: 4px;
-            background: white; box-shadow: 0 0 15px white; z-index: 40; pointer-events: none;
+            position: absolute; bottom: 120px; width: 100%; height: 5px;
+            background: white; box-shadow: 0 0 20px white; z-index: 30; pointer-events: none;
         }
 
         .lane { 
             flex: 1; border-right: 1px solid rgba(255, 255, 255, 0.1); 
             position: relative; display: flex; flex-direction: column; justify-content: flex-end;
-            touch-action: none; /* Critical for mobile touch */
+            transition: background 0.1s;
         }
         .lane-active { background: linear-gradient(to top, var(--lane-glow), transparent); }
         
         .hit-box {
-            width: 100%; height: 120px; border: 3px solid var(--primary-cyan);
-            background: rgba(0, 77, 69, 0.8); display: flex; align-items: center; 
-            justify-content: center; font-weight: bold; font-size: 1.8rem; color: white;
-            box-sizing: border-box; z-index: 20;
+            width: 100%; height: 120px; border: 4px solid var(--primary-cyan);
+            background: rgba(0, 77, 69, 0.9); display: flex; align-items: center; justify-content: center; 
+            font-weight: bold; font-size: 2.5rem; color: white; box-sizing: border-box; z-index: 20;
         }
         .lane-active .hit-box { background: var(--primary-cyan); color: black; }
 
-        /* --- COMBO TRACKER --- */
-        #combo-container {
-            position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
-            font-size: 5rem; font-weight: 900; color: rgba(255, 255, 255, 0.5);
+        /* --- COMBO NUMBERS ONLY --- */
+        #combo-display {
+            position: absolute; right: 10%; top: 50%; transform: translateY(-50%);
+            font-size: 6rem; font-weight: 900; color: rgba(255, 255, 255, 0.4);
             pointer-events: none; z-index: 100; font-style: italic;
         }
 
         /* --- NOTES --- */
-        .note { position: absolute; width: 85%; left: 7.5%; height: 20px; background: var(--primary-cyan); border: 2px solid white; border-radius: 4px; z-index: 10; }
+        .note { position: absolute; width: 90%; left: 5%; height: 25px; background: var(--primary-cyan); border: 2px solid white; border-radius: 4px; z-index: 10; }
+        .note-flick { background: var(--accent-pink); border-top: 8px solid white; }
+        .note-hold { background: var(--hold-green); height: 120px; border-radius: 15px; opacity: 0.8; }
+        .note-trace { background: var(--trace-yellow); height: 15px; border-radius: 50%; box-shadow: 0 0 15px var(--trace-yellow); }
         
         /* --- HUD --- */
-        #hud { position: absolute; top: 10px; width: 100%; text-align: center; pointer-events: none; z-index: 100; }
-        #hp-bar { width: 200px; height: 12px; background: #333; border: 2px solid white; margin: 0 auto; border-radius: 10px; overflow: hidden; }
-        #hp-fill { width: 100%; height: 100%; background: #00ff00; }
+        #hud { position: absolute; top: 20px; width: 100%; text-align: center; pointer-events: none; z-index: 100; }
+        #hp-bar { width: 250px; height: 15px; background: #333; border: 2px solid white; margin: 0 auto; border-radius: 10px; overflow: hidden; }
+        #hp-fill { width: 100%; height: 100%; background: #00ff00; transition: width 0.2s; }
         
         #judgment-text { 
-            position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 2.5rem; font-weight: 900; z-index: 100; pointer-events: none;
-            text-shadow: 0 0 10px black; opacity: 0;
+            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 3.5rem; font-weight: 900; z-index: 100; pointer-events: none;
+            text-shadow: 0 0 15px black;
         }
 
         #game-popup, #diff-menu, #pause-menu {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: var(--ui-panel); border: 3px solid var(--primary-cyan);
-            padding: 30px; border-radius: 15px; text-align: center; z-index: 1000; width: 80%; max-width: 300px;
+            background: var(--ui-panel); border: 4px solid var(--primary-cyan);
+            padding: 40px; border-radius: 20px; text-align: center; z-index: 1000;
         }
-        .popup-btn { margin-top: 15px; padding: 12px 24px; background: var(--primary-cyan); color: black; font-weight: bold; border-radius: 8px; cursor: pointer; display: inline-block; }
+        .popup-btn { margin-top: 20px; padding: 15px 30px; background: var(--primary-cyan); color: black; font-weight: bold; border-radius: 10px; cursor: pointer; display: inline-block; }
     </style>
 </head>
 <body>
@@ -94,47 +92,47 @@
             <div class="nav-item" onclick="showSection('songs')">Music Shop</div>
             <div class="nav-item" onclick="showSection('characters')">Characters</div>
         </div>
-        <div id="songs" class="content" style="padding: 15px; flex-grow: 1;">
-            <h2>Music Shop</h2>
+        <div id="songs" class="content" style="padding: 20px; flex-grow: 1;">
+            <h2>Select Song</h2>
             <div class="nav-item" onclick="openDiff('The Happy Fits - Black Hole.mp3')">Black Hole</div>
             <div class="nav-item" onclick="openDiff('The Happy Fits - Wild in Love (Official Music Video).mp3')">Wild in Love</div>
         </div>
-        <div id="characters" class="content hidden" style="padding: 15px; flex-grow: 1;">
+        <div id="characters" class="content hidden" style="padding: 20px; flex-grow: 1;">
             <h2>Characters</h2>
             <div id="char-calvin" class="nav-item" onclick="selectChar('calvin')">
-                <strong>Calvin</strong><br><small>Ability: Heals 15 HP every 10s</small>
+                <strong>Calvin</strong><br><small>Ability: Heals 15 HP every 10 seconds</small>
             </div>
         </div>
     </div>
 
     <div id="diff-menu" class="hidden">
-        <h2>Difficulty</h2>
+        <h2 style="color:var(--primary-cyan)">Select Difficulty</h2>
         <div class="nav-item" onclick="setDiff(400, 5)">Easy</div>
         <div class="nav-item" onclick="setDiff(700, 7)">Normal</div>
-        <div class="nav-item" onclick="setDiff(1000, 9)">Hard</div>
+        <div class="nav-item" onclick="setDiff(1000, 10)">Hard</div>
     </div>
 
     <div id="game-screen" class="screen hidden">
-        <div id="combo-container">0</div>
+        <div id="combo-display">0</div>
         <div id="hud">
             <div id="hp-bar"><div id="hp-fill"></div></div>
-            <div id="score-val" style="font-size: 1.2rem; font-weight: bold; margin-top: 5px;">Score: 0</div>
-            <button style="pointer-events: auto; margin-top: 5px;" onclick="togglePause()">PAUSE</button>
+            <div id="score-val" style="font-size: 1.5rem; font-weight: bold; margin-top: 10px;">Score: 0</div>
+            <button style="pointer-events: auto; margin-top: 10px;" onclick="togglePause()">PAUSE</button>
         </div>
         <div id="judgment-text"></div>
         <div id="game-area">
             <div id="perfect-line"></div>
             <div class="lanes">
-                <div class="lane" id="l0" onpointerdown="checkHit(0)"><div class="hit-box">D</div></div>
-                <div class="lane" id="l1" onpointerdown="checkHit(1)"><div class="hit-box">F</div></div>
-                <div class="lane" id="l2" onpointerdown="checkHit(2)"><div class="hit-box">J</div></div>
-                <div class="lane" id="l3" onpointerdown="checkHit(3)"><div class="hit-box">K</div></div>
+                <div class="lane" id="l0" onmousedown="checkHit(0)" ontouchstart="checkHit(0)"><div class="hit-box">D</div></div>
+                <div class="lane" id="l1" onmousedown="checkHit(1)" ontouchstart="checkHit(1)"><div class="hit-box">F</div></div>
+                <div class="lane" id="l2" onmousedown="checkHit(2)" ontouchstart="checkHit(2)"><div class="hit-box">J</div></div>
+                <div class="lane" id="l3" onmousedown="checkHit(3)" ontouchstart="checkHit(3)"><div class="hit-box">K</div></div>
             </div>
         </div>
     </div>
 
     <div id="pause-menu" class="hidden">
-        <h1>PAUSED</h1>
+        <h1 style="color:var(--primary-cyan)">PAUSED</h1>
         <div class="popup-btn" onclick="togglePause()">RESUME</div>
         <div class="popup-btn" style="background:#ff4b5c" onclick="location.reload()">QUIT</div>
     </div>
@@ -142,7 +140,7 @@
     <div id="game-popup" class="hidden">
         <h1 id="popup-title">GAME OVER</h1>
         <p id="popup-score">Score: 0</p>
-        <div class="popup-btn" onclick="location.reload()">MENU</div>
+        <div class="popup-btn" onclick="location.reload()">BACK TO MENU</div>
     </div>
 
     <audio id="music-player" preload="auto"></audio>
@@ -152,21 +150,18 @@
         let selectedChar = null, currentSeed = 0, spawnSpeed = 700, noteFallSpeed = 6;
         let tempSong = "";
         const player = document.getElementById('music-player');
-        
-        // Audio Synth Setup
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function playSine() {
+        // Audio Synth
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playHitSound() {
             const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
+            const g = audioCtx.createGain();
             osc.type = 'sine';
             osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
+            g.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+            osc.connect(g); g.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
         }
 
         function showSection(id) {
@@ -183,9 +178,14 @@
         function openDiff(song) { tempSong = song; document.getElementById('diff-menu').classList.remove('hidden'); }
 
         function setDiff(spawn, fall) {
-            spawnSpeed = 1500 - spawn; noteFallSpeed = fall;
+            spawnSpeed = 1400 - spawn; noteFallSpeed = fall;
             document.getElementById('diff-menu').classList.add('hidden');
             startGame(tempSong);
+        }
+
+        function seededRandom() {
+            let x = Math.sin(currentSeed++) * 10000;
+            return x - Math.floor(x);
         }
 
         function startGame(fileName) {
@@ -197,20 +197,24 @@
             document.getElementById('game-screen').classList.remove('hidden');
             gameActive = true; score = 0; hp = 100; combo = 0;
             updateHUD();
-            
-            const spawnInterval = setInterval(() => {
-                if(!gameActive) clearInterval(spawnInterval);
-                if(gameActive && !isPaused) spawnNote();
-            }, spawnSpeed);
+            setInterval(() => { if(gameActive && !isPaused) spawnNote(); }, spawnSpeed);
+            if(selectedChar === 'calvin') {
+                setInterval(() => { if(gameActive && !isPaused && hp < 100) { hp = Math.min(100, hp + 15); updateHUD(); } }, 10000);
+            }
             requestAnimationFrame(gameLoop);
         }
 
         function spawnNote() {
-            const lane = Math.floor(Math.random() * 4);
+            const lane = Math.floor(seededRandom() * 4);
+            const typeProb = seededRandom();
+            let type = 'normal';
+            if (typeProb > 0.85) type = 'flick';
+            else if (typeProb > 0.75) type = 'hold';
+            else if (typeProb > 0.65) type = 'trace';
             const el = document.createElement('div');
-            el.className = 'note';
+            el.className = 'note note-' + type;
             document.getElementById('l' + lane).appendChild(el);
-            notes.push({ el, y: -50, lane });
+            notes.push({ el, y: -100, lane, type });
         }
 
         function gameLoop() {
@@ -219,9 +223,11 @@
                 let n = notes[i];
                 n.y += noteFallSpeed;
                 n.el.style.top = n.y + 'px';
+                const lineY = window.innerHeight - 120;
+                if (n.type === 'trace' && n.y > lineY) { hitNote(i, "PERFECT!!", 1.5); continue; }
                 if (n.y > window.innerHeight) {
                     n.el.remove(); notes.splice(i, 1);
-                    hp -= 10; combo = 0; showJudgment("MISS", "#888888");
+                    if (n.type !== 'trace') { hp -= 10; combo = 0; showJudgment("MISS", "#888888"); }
                     updateHUD();
                 }
             }
@@ -233,32 +239,32 @@
             if(!gameActive || isPaused) return;
             const lEl = document.getElementById('l' + lane);
             lEl.classList.add('lane-active');
-            setTimeout(() => lEl.classList.remove('lane-active'), 100);
+            setTimeout(() => lEl.classList.remove('lane-active'), 150);
 
-            const lineY = window.innerHeight - 130;
-            const noteIdx = notes.findIndex(n => n.lane === lane && Math.abs(n.y - lineY) < 100);
+            const hitThreshold = window.innerHeight - 120;
+            const noteIdx = notes.findIndex(n => n.lane === lane && n.y > hitThreshold - 100 && n.y < hitThreshold + 100);
             
             if (noteIdx !== -1) {
-                playSine();
-                const diff = Math.abs(notes[noteIdx].y - lineY);
-                combo++;
-                if (diff < 30) hitNote(noteIdx, "PERFECT!!", 1.5);
-                else if (diff < 60) hitNote(noteIdx, "GREAT!", 1.2);
-                else hitNote(noteIdx, "GOOD", 1.0);
+                playHitSound();
+                const diff = Math.abs(notes[noteIdx].y - hitThreshold);
+                if (diff < 35) hitNote(noteIdx, "PERFECT!!", 1.5);
+                else if (diff < 65) hitNote(noteIdx, "GREAT!", 1.2);
+                else if (diff < 95) hitNote(noteIdx, "GOOD", 1.0);
+                else { combo = 0; hitNote(noteIdx, "BAD", 0.5, true); }
             }
         }
 
-        function hitNote(idx, text, multiplier) {
+        function hitNote(idx, text, mult, isBad = false) {
             notes[idx].el.remove(); notes.splice(idx, 1);
-            score += Math.floor(100 * multiplier);
-            showJudgment(text, text === "PERFECT!!" ? "#ffff00" : "#ff00ff");
+            if(!isBad) { score += Math.floor(100 * mult); combo++; } else { hp -= 5; }
+            showJudgment(text, text === "PERFECT!!" ? "#ffff00" : (text === "GREAT!" ? "#ff00ff" : "#00ffff"));
             updateHUD();
         }
 
         function showJudgment(txt, color) {
             const j = document.getElementById('judgment-text');
             j.innerText = txt; j.style.color = color; j.style.opacity = 1;
-            setTimeout(() => { j.style.opacity = 0; }, 400);
+            setTimeout(() => { j.style.opacity = 0; }, 500);
         }
 
         function togglePause() {
@@ -270,13 +276,13 @@
         function updateHUD() {
             document.getElementById('score-val').innerText = "Score: " + score;
             document.getElementById('hp-fill').style.width = hp + "%";
-            document.getElementById('combo-container').innerText = combo;
+            document.getElementById('combo-display').innerText = combo;
         }
 
         function showEndScreen(title) {
             gameActive = false; player.pause();
+            document.getElementById('popup-score').innerText = "Final Score: " + score;
             document.getElementById('game-popup').classList.remove('hidden');
-            document.getElementById('popup-score').innerText = "Score: " + score;
         }
 
         window.addEventListener('keydown', (e) => {
