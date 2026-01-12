@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Project: Ongaku</title>
     <style>
         :root {
@@ -13,6 +15,7 @@
             --accent-pink: #ff00ff;
             --hold-green: #00ff88;
             --lane-glow: rgba(0, 255, 229, 0.15);
+            --gem-color: #ffd700;
         }
         body, html {
             margin: 0; padding: 0; font-family: 'Helvetica', sans-serif;
@@ -26,66 +29,63 @@
             width: 120px; background: var(--ui-panel); border-right: 3px solid var(--primary-cyan); 
             padding: 10px; z-index: 10; flex-shrink: 0; 
         }
-        .nav-item { padding: 12px; margin: 8px 0; cursor: pointer; background: rgba(128,128,128,0.2); border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.8rem; }
+        .nav-item { padding: 10px; margin: 8px 0; cursor: pointer; background: rgba(128,128,128,0.2); border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.75rem; transition: 0.2s; }
         .selected { border: 2px solid var(--primary-cyan); background: rgba(0, 255, 229, 0.6); box-shadow: 0 0 10px var(--primary-cyan); }
         
+        #gem-display { color: var(--gem-color); font-weight: bold; font-size: 0.9rem; text-align: center; margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px; }
+
+        .content { padding: 15px; flex-grow: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .song-card, .char-card { 
+            background: rgba(255,255,255,0.05); padding: 12px; border-radius: 10px; 
+            margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .buy-btn { background: var(--gem-color); color: black; padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 0.7rem; }
+
         #game-area { position: relative; width: 90%; max-width: 400px; height: 100%; margin: 0 auto; perspective: 120px; }
         .lanes { display: flex; height: 100%; transform: rotateX(8deg); background: rgba(255,255,255,0.02); position: relative; }
-        
         #perfect-line { position: absolute; bottom: 120px; width: 100%; height: 5px; background: white; box-shadow: 0 0 20px white; z-index: 30; pointer-events: none; }
-
         .lane { flex: 1; border-right: 1px solid rgba(255, 255, 255, 0.1); position: relative; display: flex; flex-direction: column; justify-content: flex-end; }
         .lane-active { background: linear-gradient(to top, var(--lane-glow), transparent); }
-        
         .hit-box { width: 100%; height: 120px; border: 3px solid var(--primary-cyan); background: rgba(0, 77, 69, 0.9); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 2rem; color: white; box-sizing: border-box; z-index: 20; }
-
-        #combo-display { position: absolute; right: 5%; top: 45%; font-size: 5rem; font-weight: 900; color: rgba(255, 255, 255, 0.3); pointer-events: none; z-index: 100; font-style: italic; }
         .note { position: absolute; width: 85%; left: 7.5%; height: 25px; background: var(--primary-cyan); border: 2px solid white; border-radius: 4px; z-index: 10; }
-        
+        #combo-display { position: absolute; right: 5%; top: 45%; font-size: 5rem; font-weight: 900; color: rgba(255, 255, 255, 0.3); pointer-events: none; z-index: 100; font-style: italic; }
         #hud { position: absolute; top: 15px; width: 100%; text-align: center; pointer-events: none; z-index: 100; }
         #hp-bar { width: 180px; height: 12px; background: #333; border: 2px solid white; margin: 0 auto; border-radius: 10px; overflow: hidden; }
         #hp-fill { width: 100%; height: 100%; background: #00ff00; transition: width 0.2s; }
-        
         #judgment-text { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%); font-size: 3rem; font-weight: 900; z-index: 100; pointer-events: none; text-shadow: 0 0 15px black; }
-
         #game-popup, #diff-menu, #pause-menu { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--ui-panel); border: 4px solid var(--primary-cyan); padding: 30px; border-radius: 20px; text-align: center; z-index: 1000; width: 80%; }
         .results-list { list-style: none; padding: 0; margin: 10px 0; text-align: left; display: inline-block; }
         .popup-btn { margin-top: 15px; padding: 12px 25px; background: var(--primary-cyan); color: black; font-weight: bold; border-radius: 10px; cursor: pointer; display: inline-block; }
-        
-        .locked { background: #444 !important; color: #888 !important; cursor: not-allowed !important; opacity: 0.6; }
-        #unlock-msg { color: var(--hold-green); font-weight: bold; margin: 10px 0; display: none; }
+        .locked { opacity: 0.5; pointer-events: none; }
     </style>
 </head>
 <body>
 
     <div id="home-screen" class="screen">
         <div class="sidebar">
-            <h1 style="color:var(--primary-cyan); font-size: 1rem;">ONGAKU</h1>
+            <h1 style="color:var(--primary-cyan); font-size: 0.9rem;">ONGAKU</h1>
+            <div id="gem-display">💎 <span id="gem-count">0</span></div>
             <div class="nav-item" onclick="showSection('songs')">Songs</div>
             <div class="nav-item" onclick="showSection('characters')">Chars</div>
+            <div class="nav-item" onclick="showSection('shop')">Shop</div>
         </div>
-        <div id="songs" class="content" style="padding: 15px; flex-grow: 1; overflow-y: auto;">
-            <h2>Music Shop</h2>
-            <div class="nav-item" onclick="openDiff('The Happy Fits - Black Hole.mp3')">Black Hole</div>
-            <div class="nav-item" onclick="openDiff('The Happy Fits - Wild in Love (Official Music Video).mp3')">Wild in Love</div>
-            <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_Achey_Bones_(mp3.pm).mp3')">Achey Bones</div>
-            <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_She_Wants_Me_To_Be_Loved_(mp3.pm).mp3')">She Wants Me To Be Loved</div>
-            <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_Two_of_Many_(mp3.pm).mp3')">Two of Many</div>
-            <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_No_Instructions_(mp3.pm).mp3')">No Instructions</div>
-            <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_Go_Dumb_(mp3.pm).mp3')">Go Dumb</div>
-            <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_Heart_of_a_Dancer_(mp3.pm).mp3')">Heart of a Dancer</div>
-            <div class="nav-item" onclick="openDiff('The Happy Fits  — \"Do You See Me?\"  | Neighborhoods (Live in Woodstock, NY).mp3')">Do You See Me?</div>
-            <div class="nav-item" onclick="openDiff('The Happy Fits - Mary - Live at Diamond City Studio.mp3')">Mary</div>
-            <div class="nav-item" onclick="openDiff('The Happy Fits - Relimerence (Official Audio).mp3')">Relimerence</div>
-            <div class="nav-item" onclick="openDiff('The Happy Fits - Cold Turkey (Official Audio).mp3')">Cold Turkey</div>
-            <div class="nav-item" onclick="openDiff('The Happy Fits - Little One (Official Audio).mp3')">Little One</div>
+
+        <div id="songs" class="content">
+            <h2>Music Library</h2>
+            <div id="song-list-container"></div>
         </div>
-        <div id="characters" class="content hidden" style="padding: 15px; flex-grow: 1; overflow-y: auto;">
-            <h2>Party (Max 3)</h2>
-            <div id="char-calvin" class="nav-item" onclick="toggleChar('calvin')">Calvin (Healer)</div>
-            <div id="char-luke" class="nav-item" onclick="toggleChar('luke')">Luke (Shield)</div>
-            <div id="char-raina" class="nav-item" onclick="toggleChar('raina')">Raina (Score+)</div>
-            <div id="char-nico" class="nav-item" onclick="toggleChar('nico')">Nico (Combo Save)</div>
+
+        <div id="characters" class="content hidden">
+            <h2>Your Party (Max 3)</h2>
+            <div id="char-list-container"></div>
+        </div>
+
+        <div id="shop" class="content hidden">
+            <h2>Gem Shop</h2>
+            <h3 style="font-size:0.8rem; color:var(--primary-cyan)">Buy Songs (200💎)</h3>
+            <div id="shop-song-container"></div>
+            <h3 style="font-size:0.8rem; color:var(--primary-cyan); margin-top:20px;">Buy Characters</h3>
+            <div id="shop-char-container"></div>
         </div>
     </div>
 
@@ -94,8 +94,8 @@
         <div class="nav-item" onclick="setDiff(400, 5, 'easy')">Easy</div>
         <div class="nav-item" onclick="setDiff(700, 7, 'normal')">Normal</div>
         <div class="nav-item" onclick="setDiff(1000, 10, 'hard')">Hard</div>
-        <div id="master-btn" class="nav-item locked" onclick="tryMaster()">Master (Locked)</div>
-        <div class="popup-btn" style="background:#444; color: white;" onclick="document.getElementById('diff-menu').classList.add('hidden')">Cancel</div>
+        <div id="master-btn" class="nav-item" onclick="tryMaster()">Master</div>
+        <div class="popup-btn" style="background:#444; color:white;" onclick="document.getElementById('diff-menu').classList.add('hidden')">Cancel</div>
     </div>
 
     <div id="game-screen" class="screen hidden">
@@ -109,10 +109,10 @@
         <div id="game-area">
             <div id="perfect-line"></div>
             <div class="lanes">
-                <div class="lane" id="l0" onmousedown="checkHit(0)" ontouchstart="checkHit(0)"><div class="hit-box">D</div></div>
-                <div class="lane" id="l1" onmousedown="checkHit(1)" ontouchstart="checkHit(1)"><div class="hit-box">F</div></div>
-                <div class="lane" id="l2" onmousedown="checkHit(2)" ontouchstart="checkHit(2)"><div class="hit-box">J</div></div>
-                <div class="lane" id="l3" onmousedown="checkHit(3)" ontouchstart="checkHit(3)"><div class="hit-box">K</div></div>
+                <div class="lane" id="l0" ontouchstart="checkHit(0)"><div class="hit-box">D</div></div>
+                <div class="lane" id="l1" ontouchstart="checkHit(1)"><div class="hit-box">F</div></div>
+                <div class="lane" id="l2" ontouchstart="checkHit(2)"><div class="hit-box">J</div></div>
+                <div class="lane" id="l3" ontouchstart="checkHit(3)"><div class="hit-box">K</div></div>
             </div>
         </div>
     </div>
@@ -126,6 +126,7 @@
     <div id="game-popup" class="hidden">
         <h1 id="popup-title">CLEAR!</h1>
         <h2 id="popup-score">0</h2>
+        <p id="gem-reward" style="color:var(--gem-color); font-weight:bold;">+0 Gems</p>
         <ul class="results-list">
             <li style="color:#ffff00">Perfect: <span id="res-p">0</span></li>
             <li style="color:#ff00ff">Great: <span id="res-gr">0</span></li>
@@ -133,7 +134,7 @@
             <li style="color:#ffa500">Bad: <span id="res-b">0</span></li>
             <li style="color:#ff4b5c">Miss: <span id="res-m">0</span></li>
         </ul>
-        <div id="unlock-msg">MASTER UNLOCKED FOR THIS SONG!</div>
+        <div id="unlock-msg" style="color:var(--hold-green); display:none;">MASTER UNLOCKED!</div>
         <br>
         <div class="popup-btn" onclick="location.reload()">MENU</div>
     </div>
@@ -141,75 +142,136 @@
     <audio id="music-player" preload="auto"></audio>
 
     <script>
+        const songData = [
+            { id: "achey", name: "Achey Bones", file: "The_Happy_Fits_-_Achey_Bones_(mp3.pm).mp3", cost: 0 },
+            { id: "shewants", name: "She Wants Me To Be Loved", file: "The_Happy_Fits_-_She_Wants_Me_To_Be_Loved_(mp3.pm).mp3", cost: 0 },
+            { id: "twoofmany", name: "Two of Many", file: "The_Happy_Fits_-_Two_of_Many_(mp3.pm).mp3", cost: 0 },
+            { id: "noinstr", name: "No Instructions", file: "The_Happy_Fits_-_No_Instructions_(mp3.pm).mp3", cost: 0 },
+            { id: "godumb", name: "Go Dumb", file: "The_Happy_Fits_-_Go_Dumb_(mp3.pm).mp3", cost: 0 },
+            { id: "heart", name: "Heart of a Dancer", file: "The_Happy_Fits_-_Heart_of_a_Dancer_(mp3.pm).mp3", cost: 200 },
+            { id: "doyousee", name: "Do You See Me?", file: "The Happy Fits  — \"Do You See Me?\"  | Neighborhoods (Live in Woodstock, NY).mp3", cost: 200 },
+            { id: "mary", name: "Mary", file: "The Happy Fits - Mary - Live at Diamond City Studio.mp3", cost: 200 },
+            { id: "relim", name: "Relimerence", file: "The Happy Fits - Relimerence (Official Audio).mp3", cost: 200 },
+            { id: "coldturkey", name: "Cold Turkey", file: "The Happy Fits - Cold Turkey (Official Audio).mp3", cost: 200 },
+            { id: "littleone", name: "Little One", file: "The Happy Fits - Little One (Official Audio).mp3", cost: 200 },
+            { id: "disappear", name: "Disappearance of Hatsune Miku", file: "cosMo_P_ft._Hatsune_Miku_-_The_Disappearence_of_Hatsune_Miku_remake_2018_(mp3.pm).mp3", cost: 200 },
+            { id: "intense", name: "Intense Voice of Hatsune Miku", file: "cosMo_Bousou-P_feat._Hatsune_Miku_-_The_Intense_Voice_of_Hatsune_Miku_(mp3.pm).mp3", cost: 200 }
+        ];
+
+        const charData = [
+            { id: "calvin", name: "Calvin", ability: "Heal 10 HP / 8s", cost: 0 },
+            { id: "luke", name: "Luke", ability: "Reduce Damage", cost: 100 },
+            { id: "raina", name: "Raina", ability: "Score Bonus", cost: 100 },
+            { id: "nico", name: "Nico", ability: "Combo Shield", cost: 100 },
+            { id: "miku", name: "Hatsune Miku", ability: "HP Drain Reduced", cost: 500 },
+            { id: "teto", name: "Kasane Teto", ability: "Fever Bonus", cost: 500 },
+            { id: "kaito", name: "Kaito", ability: "Gem Multiplier", cost: 500 },
+            { id: "len", name: "Len", ability: "Perfect Speed+", cost: 500 },
+            { id: "rin", name: "Rin", ability: "Perfect Speed+", cost: 500 },
+            { id: "meiko", name: "Meiko", ability: "HP Recovery", cost: 500 },
+            { id: "luka", name: "Luka", ability: "Judgment Shield", cost: 500 }
+        ];
+
+        let gems = parseInt(localStorage.getItem('gems')) || 0;
+        let unlockedSongs = JSON.parse(localStorage.getItem('unlockedSongs')) || ["achey", "shewants", "twoofmany", "noinstr", "godumb"];
+        let unlockedChars = JSON.parse(localStorage.getItem('unlockedChars')) || ["calvin"];
+        let songUnlocksMaster = JSON.parse(localStorage.getItem('songUnlocksMaster')) || {};
+        let selectedChars = [];
+
         let notes = [], gameActive = false, isPaused = false, score = 0, hp = 100, combo = 0;
         let counts = { p: 0, gr: 0, gd: 0, b: 0, m: 0 };
-        let selectedChars = []; 
-        let currentSeed = 0, spawnSpeed = 700, noteFallSpeed = 6;
-        let tempSong = "", currentDiff = "";
-        
-        // Load global unlock data from local storage
-        let songUnlocks = JSON.parse(localStorage.getItem('songUnlocks')) || {};
+        let tempSongId = "", tempSongFile = "", currentDiff = "", currentSeed = 0, spawnSpeed = 700, noteFallSpeed = 6;
 
         const player = document.getElementById('music-player');
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function playHitSound() {
-            const osc = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
-            g.gain.setValueAtTime(0.05, audioCtx.currentTime);
-            g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
-            osc.connect(g); g.connect(audioCtx.destination);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        function updateUI() {
+            document.getElementById('gem-count').innerText = Math.floor(gems);
+            renderSongList();
+            renderCharList();
+            renderShop();
+            localStorage.setItem('gems', gems);
+            localStorage.setItem('unlockedSongs', JSON.stringify(unlockedSongs));
+            localStorage.setItem('unlockedChars', JSON.stringify(unlockedChars));
         }
 
-        function showSection(id) {
-            document.getElementById('songs').classList.add('hidden');
-            document.getElementById('characters').classList.add('hidden');
-            document.getElementById(id).classList.remove('hidden');
+        function renderSongList() {
+            const container = document.getElementById('song-list-container');
+            container.innerHTML = "";
+            songData.filter(s => unlockedSongs.includes(s.id)).forEach(song => {
+                const el = document.createElement('div');
+                el.className = 'nav-item';
+                el.innerText = song.name;
+                el.onclick = () => openDiff(song.id, song.file);
+                container.appendChild(el);
+            });
+        }
+
+        function renderCharList() {
+            const container = document.getElementById('char-list-container');
+            container.innerHTML = "";
+            charData.filter(c => unlockedChars.includes(c.id)).forEach(char => {
+                const el = document.createElement('div');
+                el.className = 'nav-item ' + (selectedChars.includes(char.id) ? 'selected' : '');
+                el.innerHTML = `<strong>${char.name}</strong><br><small>${char.ability}</small>`;
+                el.onclick = () => toggleChar(char.id);
+                container.appendChild(el);
+            });
+        }
+
+        function renderShop() {
+            const songContainer = document.getElementById('shop-song-container');
+            const charContainer = document.getElementById('shop-char-container');
+            songContainer.innerHTML = ""; charContainer.innerHTML = "";
+
+            songData.filter(s => !unlockedSongs.includes(s.id)).forEach(song => {
+                songContainer.innerHTML += `<div class="song-card"><span>${song.name}</span><div class="buy-btn" onclick="buyItem('${song.id}', 'song', 200)">200💎</div></div>`;
+            });
+            charData.filter(c => !unlockedChars.includes(c.id)).forEach(char => {
+                charContainer.innerHTML += `<div class="char-card"><span>${char.name}</span><div class="buy-btn" onclick="buyItem('${char.id}', 'char', ${char.cost})">${char.cost}💎</div></div>`;
+            });
+        }
+
+        function buyItem(id, type, cost) {
+            if (gems >= cost) {
+                gems -= cost;
+                if (type === 'song') unlockedSongs.push(id); else unlockedChars.push(id);
+                updateUI();
+            } else { alert("Not enough gems!"); }
         }
 
         function toggleChar(id) {
-            if (selectedChars.includes(id)) {
-                selectedChars = selectedChars.filter(c => c !== id);
-                document.getElementById('char-' + id).classList.remove('selected');
-            } else if (selectedChars.length < 3) {
-                selectedChars.push(id);
-                document.getElementById('char-' + id).classList.add('selected');
-            }
+            if (selectedChars.includes(id)) selectedChars = selectedChars.filter(c => c !== id);
+            else if (selectedChars.length < 3) selectedChars.push(id);
+            updateUI();
         }
 
-        function openDiff(song) { 
-            tempSong = song; 
-            document.getElementById('diff-menu').classList.remove('hidden'); 
+        function showSection(id) {
+            ['songs', 'characters', 'shop'].forEach(s => document.getElementById(s).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function openDiff(id, file) {
+            tempSongId = id; tempSongFile = file;
+            document.getElementById('diff-menu').classList.remove('hidden');
             const mBtn = document.getElementById('master-btn');
-            
-            // Check if this specific song has Master unlocked
-            if(songUnlocks[song] === true) {
-                mBtn.classList.remove('locked');
-                mBtn.innerText = "Master";
-            } else {
-                mBtn.classList.add('locked');
-                mBtn.innerText = "Master (Locked)";
-            }
+            if(songUnlocksMaster[id]) { mBtn.classList.remove('locked'); mBtn.innerText = "Master"; }
+            else { mBtn.classList.add('locked'); mBtn.innerText = "Master (Locked)"; }
         }
 
         function setDiff(spawn, fall, name) {
             spawnSpeed = 1400 - spawn; noteFallSpeed = fall; currentDiff = name;
             document.getElementById('diff-menu').classList.add('hidden');
-            startGame(tempSong);
+            startGame(tempSongFile);
         }
 
-        function tryMaster() { 
-            if(songUnlocks[tempSong] === true) setDiff(1200, 14, 'master'); 
-        }
+        function tryMaster() { if(songUnlocksMaster[tempSongId]) setDiff(1200, 14, 'master'); }
 
         function startGame(fileName) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             currentSeed = fileName.length;
             player.src = fileName;
-            player.play().catch(e => console.log(e));
+            player.play();
             document.getElementById('home-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             gameActive = true; score = 0; hp = 100; combo = 0;
@@ -242,14 +304,11 @@
             if(!gameActive || isPaused) { if(gameActive) requestAnimationFrame(gameLoop); return; }
             for (let i = notes.length - 1; i >= 0; i--) {
                 let n = notes[i];
-                n.y += noteFallSpeed;
-                n.el.style.top = n.y + 'px';
+                n.y += noteFallSpeed; n.el.style.top = n.y + 'px';
                 if (n.y > window.innerHeight) {
                     n.el.remove(); notes.splice(i, 1);
-                    let dmg = selectedChars.includes('luke') ? 6 : 10;
-                    hp -= dmg; combo = 0; counts.m++; 
-                    showJudgment("MISS", "#888888");
-                    updateHUD();
+                    hp -= selectedChars.includes('luke') ? 5 : 10;
+                    combo = 0; counts.m++; showJudgment("MISS", "#888888"); updateHUD();
                 }
             }
             if(hp <= 0) showEndScreen("FAILED");
@@ -259,30 +318,17 @@
 
         function checkHit(lane) {
             if(!gameActive || isPaused) return;
-            const lEl = document.getElementById('l' + lane);
-            lEl.classList.add('lane-active');
-            setTimeout(() => lEl.classList.remove('lane-active'), 150);
-
             const hitThreshold = window.innerHeight - 120;
             const noteIdx = notes.findIndex(n => n.lane === lane && n.y > hitThreshold - 100 && n.y < hitThreshold + 100);
-            
             if (noteIdx !== -1) {
-                playHitSound();
                 const diff = Math.abs(notes[noteIdx].y - hitThreshold);
-                if (diff < 35) { 
-                    counts.p++; 
-                    let bonus = selectedChars.includes('raina') ? 2.0 : 1.5;
-                    hitNote(noteIdx, "PERFECT!!", bonus); 
-                }
+                if (diff < 35) { counts.p++; hitNote(noteIdx, "PERFECT!!", selectedChars.includes('raina') ? 2 : 1.5); }
                 else if (diff < 65) { counts.gr++; hitNote(noteIdx, "GREAT!", 1.2); }
                 else if (diff < 95) { counts.gd++; hitNote(noteIdx, "GOOD", 1.0); }
                 else { 
                     counts.b++;
-                    if (selectedChars.includes('nico') && Math.random() < 0.25) {
-                        hitNote(noteIdx, "COMBO SAVE", 0.5);
-                    } else {
-                        combo = 0; hitNote(noteIdx, "BAD", 0.5, true); 
-                    }
+                    if(selectedChars.includes('nico') && Math.random() < 0.3) hitNote(noteIdx, "SAFE", 0.5);
+                    else { combo = 0; hitNote(noteIdx, "BAD", 0.5, true); }
                 }
             }
         }
@@ -290,19 +336,17 @@
         function hitNote(idx, text, mult, isBad = false) {
             notes[idx].el.remove(); notes.splice(idx, 1);
             if(!isBad) { score += Math.floor(100 * mult); combo++; } else { hp -= 5; }
-            showJudgment(text, text === "PERFECT!!" ? "#ffff00" : (text === "GREAT!" ? "#ff00ff" : "#00ffff"));
-            updateHUD();
+            showJudgment(text, text.includes("PERF") ? "#ffff00" : "#00ffff"); updateHUD();
         }
 
         function showJudgment(txt, color) {
             const j = document.getElementById('judgment-text');
             j.innerText = txt; j.style.color = color; j.style.opacity = 1;
-            setTimeout(() => { if(j.innerText === txt) j.style.opacity = 0; }, 500);
+            setTimeout(() => j.style.opacity = 0, 400);
         }
 
         function togglePause() {
-            isPaused = !isPaused;
-            if(isPaused) player.pause(); else player.play();
+            isPaused = !isPaused; player[isPaused ? 'pause' : 'play']();
             document.getElementById('pause-menu').classList.toggle('hidden');
         }
 
@@ -314,26 +358,28 @@
 
         function showEndScreen(title) {
             gameActive = false; player.pause();
+            const earnedGems = Math.floor(score * 0.001);
+            gems += earnedGems;
             
-            // Per-song Unlock Logic
             if(currentDiff === 'hard' && counts.m < 10) { 
-                songUnlocks[tempSong] = true;
-                localStorage.setItem('songUnlocks', JSON.stringify(songUnlocks));
-                document.getElementById('unlock-msg').style.display = 'block'; 
-            } else {
-                document.getElementById('unlock-msg').style.display = 'none';
+                songUnlocksMaster[tempSongId] = true;
+                localStorage.setItem('songUnlocksMaster', JSON.stringify(songUnlocksMaster));
+                document.getElementById('unlock-msg').style.display = 'block';
             }
 
             document.getElementById('popup-title').innerText = title;
             document.getElementById('popup-score').innerText = score;
+            document.getElementById('gem-reward').innerText = "+" + earnedGems + " Gems";
             document.getElementById('res-p').innerText = counts.p;
             document.getElementById('res-gr').innerText = counts.gr;
             document.getElementById('res-gd').innerText = counts.gd;
             document.getElementById('res-b').innerText = counts.b;
             document.getElementById('res-m').innerText = counts.m;
             document.getElementById('game-popup').classList.remove('hidden');
+            updateUI();
         }
+
+        updateUI();
     </script>
 </body>
 </html>
-     
