@@ -2,9 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Project: Ongaku</title>
     <style>
         :root {
@@ -20,20 +18,34 @@
         body, html {
             margin: 0; padding: 0; font-family: 'Helvetica', sans-serif;
             background: var(--dark-bg); color: var(--text-color);
-            overflow: hidden; height: 100vh; touch-action: none;
+            overflow: hidden; height: 100vh; width: 100vw; touch-action: none;
         }
         .screen { position: absolute; width: 100%; height: 100%; display: flex; z-index: 5; }
         .hidden { display: none !important; }
 
+        /* iPhone 6 Narrow Sidebar */
         .sidebar { 
-            width: 140px; background: var(--ui-panel); border-right: 3px solid var(--primary-cyan); 
+            width: 120px; background: var(--ui-panel); border-right: 3px solid var(--primary-cyan); 
             padding: 10px; z-index: 10; flex-shrink: 0; 
         }
-        .nav-item { padding: 12px; margin: 8px 0; cursor: pointer; background: rgba(128,128,128,0.2); border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.85rem; }
+        .nav-item { padding: 12px; margin: 8px 0; cursor: pointer; background: rgba(128,128,128,0.2); border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.8rem; }
         .selected { border: 2px solid var(--primary-cyan); background: rgba(0, 255, 229, 0.3); }
         
-        #game-area { position: relative; width: 100%; max-width: 500px; height: 100%; margin: 0 auto; perspective: 150px; }
-        .lanes { display: flex; height: 100%; transform: rotateX(15deg); background: rgba(255,255,255,0.02); position: relative; }
+        /* Fixed perspective and width for iPhone 6 edges */
+        #game-area { 
+            position: relative; 
+            width: 90%; /* Keeps it away from the very edges */
+            max-width: 400px; 
+            height: 100%; 
+            margin: 0 auto; 
+            perspective: 120px; /* Lower perspective stops corners stretching out */
+        }
+        .lanes { 
+            display: flex; height: 100%; 
+            transform: rotateX(8deg); /* Very slight tilt so corners stay on screen */
+            background: rgba(255,255,255,0.02); 
+            position: relative; 
+        }
         
         #perfect-line {
             position: absolute; bottom: 120px; width: 100%; height: 5px;
@@ -43,32 +55,31 @@
         .lane { 
             flex: 1; border-right: 1px solid rgba(255, 255, 255, 0.1); 
             position: relative; display: flex; flex-direction: column; justify-content: flex-end;
-            transition: background 0.1s;
         }
         .lane-active { background: linear-gradient(to top, var(--lane-glow), transparent); }
         
         .hit-box {
-            width: 100%; height: 120px; border: 4px solid var(--primary-cyan);
+            width: 100%; height: 120px; border: 3px solid var(--primary-cyan);
             background: rgba(0, 77, 69, 0.9); display: flex; align-items: center; justify-content: center; 
-            font-weight: bold; font-size: 2.5rem; color: white; box-sizing: border-box; z-index: 20;
+            font-weight: bold; font-size: 2rem; color: white; box-sizing: border-box; z-index: 20;
         }
         .lane-active .hit-box { background: var(--primary-cyan); color: black; }
 
         #combo-display {
-            position: absolute; right: 10%; top: 50%; transform: translateY(-50%);
-            font-size: 6rem; font-weight: 900; color: rgba(255, 255, 255, 0.4);
+            position: absolute; right: 5%; top: 45%; 
+            font-size: 5rem; font-weight: 900; color: rgba(255, 255, 255, 0.3);
             pointer-events: none; z-index: 100; font-style: italic;
         }
 
-        .note { position: absolute; width: 90%; left: 5%; height: 25px; background: var(--primary-cyan); border: 2px solid white; border-radius: 4px; z-index: 10; }
+        .note { position: absolute; width: 85%; left: 7.5%; height: 25px; background: var(--primary-cyan); border: 2px solid white; border-radius: 4px; z-index: 10; }
         
-        #hud { position: absolute; top: 20px; width: 100%; text-align: center; pointer-events: none; z-index: 100; }
-        #hp-bar { width: 250px; height: 15px; background: #333; border: 2px solid white; margin: 0 auto; border-radius: 10px; overflow: hidden; }
-        #hp-fill { width: 100%; height: 100%; background: #00ff00; transition: width 0.2s; }
+        #hud { position: absolute; top: 15px; width: 100%; text-align: center; pointer-events: none; z-index: 100; }
+        #hp-bar { width: 180px; height: 12px; background: #333; border: 2px solid white; margin: 0 auto; border-radius: 10px; overflow: hidden; }
+        #hp-fill { width: 100%; height: 100%; background: #00ff00; }
         
         #judgment-text { 
-            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 3.5rem; font-weight: 900; z-index: 100; pointer-events: none;
+            position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 3rem; font-weight: 900; z-index: 100; pointer-events: none;
             text-shadow: 0 0 15px black;
         }
 
@@ -76,26 +87,25 @@
         #game-popup, #diff-menu, #pause-menu {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: var(--ui-panel); border: 4px solid var(--primary-cyan);
-            padding: 40px; border-radius: 20px; text-align: center; z-index: 1000;
+            padding: 30px; border-radius: 20px; text-align: center; z-index: 1000; width: 80%;
         }
-        .results-list { list-style: none; padding: 0; margin: 15px 0; text-align: left; display: inline-block; }
-        .results-list li { font-size: 1.1rem; margin: 5px 0; font-weight: bold; }
+        .results-list { list-style: none; padding: 0; margin: 10px 0; text-align: left; display: inline-block; }
         .popup-btn { margin-top: 15px; padding: 12px 25px; background: var(--primary-cyan); color: black; font-weight: bold; border-radius: 10px; cursor: pointer; display: inline-block; }
         
-        .locked { background: #444 !important; color: #888 !important; cursor: not-allowed !important; border: 2px solid #666 !important; }
-        #unlock-msg { color: var(--hold-green); font-weight: bold; margin-top: 10px; display: none; }
+        .locked { background: #444 !important; color: #888 !important; cursor: not-allowed !important; opacity: 0.6; }
+        #unlock-msg { color: var(--hold-green); font-weight: bold; margin: 10px 0; display: none; }
     </style>
 </head>
 <body>
 
     <div id="home-screen" class="screen">
         <div class="sidebar">
-            <h1 style="color:var(--primary-cyan); font-size: 1.2rem;">ONGAKU</h1>
-            <div class="nav-item" onclick="showSection('songs')">Music Shop</div>
-            <div class="nav-item" onclick="showSection('characters')">Characters</div>
+            <h1 style="color:var(--primary-cyan); font-size: 1rem;">ONGAKU</h1>
+            <div class="nav-item" onclick="showSection('songs')">Songs</div>
+            <div class="nav-item" onclick="showSection('characters')">Chars</div>
         </div>
-        <div id="songs" class="content" style="padding: 20px; flex-grow: 1; overflow-y: auto;">
-            <h2>Select Song</h2>
+        <div id="songs" class="content" style="padding: 15px; flex-grow: 1; overflow-y: auto;">
+            <h2>Music Shop</h2>
             <div class="nav-item" onclick="openDiff('The Happy Fits - Black Hole.mp3')">Black Hole</div>
             <div class="nav-item" onclick="openDiff('The Happy Fits - Wild in Love (Official Music Video).mp3')">Wild in Love</div>
             <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_Achey_Bones_(mp3.pm).mp3')">Achey Bones</div>
@@ -104,29 +114,26 @@
             <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_No_Instructions_(mp3.pm).mp3')">No Instructions</div>
             <div class="nav-item" onclick="openDiff('The_Happy_Fits_-_Go_Dumb_(mp3.pm).mp3')">Go Dumb</div>
         </div>
-        <div id="characters" class="content hidden" style="padding: 20px; flex-grow: 1; overflow-y: auto;">
+        <div id="characters" class="content hidden" style="padding: 15px; flex-grow: 1;">
             <h2>Characters</h2>
-            <div id="char-calvin" class="nav-item" onclick="selectChar('calvin')">
-                <strong>Calvin</strong><br><small>Ability: Heals 15 HP every 10 seconds</small>
-            </div>
+            <div id="char-calvin" class="nav-item" onclick="selectChar('calvin')">Calvin (Heal)</div>
         </div>
     </div>
 
     <div id="diff-menu" class="hidden">
-        <h2 style="color:var(--primary-cyan)">Select Difficulty</h2>
+        <h2 style="color:var(--primary-cyan)">Difficulty</h2>
         <div class="nav-item" onclick="setDiff(400, 5, 'easy')">Easy</div>
         <div class="nav-item" onclick="setDiff(700, 7, 'normal')">Normal</div>
         <div class="nav-item" onclick="setDiff(1000, 10, 'hard')">Hard</div>
         <div id="master-btn" class="nav-item locked" onclick="tryMaster()">Master (Locked)</div>
-        <small style="color: #aaa;">Get < 10 misses on Hard to unlock!</small>
     </div>
 
     <div id="game-screen" class="screen hidden">
         <div id="combo-display">0</div>
         <div id="hud">
             <div id="hp-bar"><div id="hp-fill"></div></div>
-            <div id="score-val" style="font-size: 1.5rem; font-weight: bold; margin-top: 10px;">Score: 0</div>
-            <button style="pointer-events: auto; margin-top: 10px;" onclick="togglePause()">PAUSE</button>
+            <div id="score-val" style="font-weight: bold; margin-top: 5px;">Score: 0</div>
+            <button style="pointer-events: auto; margin-top: 5px; padding: 5px 15px;" onclick="togglePause()">PAUSE</button>
         </div>
         <div id="judgment-text"></div>
         <div id="game-area">
@@ -147,17 +154,17 @@
     </div>
 
     <div id="game-popup" class="hidden">
-        <h1 id="popup-title">SONG CLEAR!</h1>
-        <h2 id="popup-score">Score: 0</h2>
+        <h1 id="popup-title">CLEAR!</h1>
+        <h2 id="popup-score">0</h2>
         <ul class="results-list">
-            <li style="color:#ffff00">Perfects: <span id="res-p">0</span></li>
-            <li style="color:#ff00ff">Greats: <span id="res-gr">0</span></li>
-            <li style="color:#00ffff">Goods: <span id="res-gd">0</span></li>
-            <li style="color:#ff4b5c">Misses: <span id="res-m">0</span></li>
+            <li style="color:#ffff00">Perfect: <span id="res-p">0</span></li>
+            <li style="color:#ff00ff">Great: <span id="res-gr">0</span></li>
+            <li style="color:#00ffff">Good: <span id="res-gd">0</span></li>
+            <li style="color:#ff4b5c">Miss: <span id="res-m">0</span></li>
         </ul>
-        <div id="unlock-msg">MASTER DIFFICULTY UNLOCKED!</div>
+        <div id="unlock-msg">MASTER UNLOCKED!</div>
         <br>
-        <div class="popup-btn" onclick="location.reload()">BACK TO MENU</div>
+        <div class="popup-btn" onclick="location.reload()">MENU</div>
     </div>
 
     <audio id="music-player" preload="auto"></audio>
@@ -167,7 +174,9 @@
         let counts = { p: 0, gr: 0, gd: 0, m: 0 };
         let selectedChar = null, currentSeed = 0, spawnSpeed = 700, noteFallSpeed = 6;
         let tempSong = "", currentDiff = "";
-        let masterUnlocked = false;
+        
+        // Global unlock state
+        if (window.masterUnlocked === undefined) window.masterUnlocked = false;
 
         const player = document.getElementById('music-player');
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -197,8 +206,15 @@
         function openDiff(song) { 
             tempSong = song; 
             document.getElementById('diff-menu').classList.remove('hidden'); 
+            updateMasterButton();
+        }
+
+        function updateMasterButton() {
             const mBtn = document.getElementById('master-btn');
-            if(masterUnlocked) { mBtn.classList.remove('locked'); mBtn.innerText = "Master"; }
+            if(window.masterUnlocked) {
+                mBtn.classList.remove('locked');
+                mBtn.innerText = "Master";
+            }
         }
 
         function setDiff(spawn, fall, name) {
@@ -207,18 +223,13 @@
             startGame(tempSong);
         }
 
-        function tryMaster() { if(masterUnlocked) setDiff(1200, 14, 'master'); }
-
-        function seededRandom() {
-            let x = Math.sin(currentSeed++) * 10000;
-            return x - Math.floor(x);
-        }
+        function tryMaster() { if(window.masterUnlocked) setDiff(1200, 14, 'master'); }
 
         function startGame(fileName) {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             currentSeed = fileName.length;
             player.src = fileName;
-            player.play().catch(e => console.log("Audio play failed: ", e));
+            player.play().catch(e => console.log(e));
             document.getElementById('home-screen').classList.add('hidden');
             document.getElementById('game-screen').classList.remove('hidden');
             gameActive = true; score = 0; hp = 100; combo = 0;
@@ -237,7 +248,8 @@
         }
 
         function spawnNote() {
-            const lane = Math.floor(seededRandom() * 4);
+            let x = Math.sin(currentSeed++) * 10000;
+            const lane = Math.floor((x - Math.floor(x)) * 4);
             const el = document.createElement('div');
             el.className = 'note';
             document.getElementById('l' + lane).appendChild(el);
@@ -257,8 +269,8 @@
                     updateHUD();
                 }
             }
-            if(hp <= 0) showEndScreen("GAME FAILED");
-            else if(player.ended) showEndScreen("SONG CLEAR!");
+            if(hp <= 0) showEndScreen("FAILED");
+            else if(player.ended) showEndScreen("CLEAR!");
             else requestAnimationFrame(gameLoop);
         }
 
@@ -308,11 +320,17 @@
 
         function showEndScreen(title) {
             gameActive = false; player.pause();
-            if(currentDiff === 'hard' && counts.m < 10) { masterUnlocked = true; document.getElementById('unlock-msg').style.display = 'block'; }
-            else { document.getElementById('unlock-msg').style.display = 'none'; }
+            
+            // THE UNLOCK LOGIC
+            if(currentDiff === 'hard' && counts.m < 10) { 
+                window.masterUnlocked = true; 
+                document.getElementById('unlock-msg').style.display = 'block'; 
+            } else {
+                document.getElementById('unlock-msg').style.display = 'none';
+            }
 
             document.getElementById('popup-title').innerText = title;
-            document.getElementById('popup-score').innerText = "Total Score: " + score;
+            document.getElementById('popup-score').innerText = score;
             document.getElementById('res-p').innerText = counts.p;
             document.getElementById('res-gr').innerText = counts.gr;
             document.getElementById('res-gd').innerText = counts.gd;
